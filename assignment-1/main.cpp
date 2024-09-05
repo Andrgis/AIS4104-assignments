@@ -1,5 +1,4 @@
 #include <iostream>
-
 #include <Eigen/Dense>
 
 double deg_to_rad(double degrees)
@@ -77,6 +76,7 @@ Eigen::Matrix3d rotation_matrix_from_axis_angle(const Eigen::Vector3d &axis, dou
     Eigen::Matrix3d I {Eigen::Matrix3d::Identity()};
     Eigen::Matrix3d skewed_vector_squared {skewed_vector * skewed_vector};
 
+    // Bruker Rodrigues' formula for rot(omega,thetta)
     matrix = I + std::sin(radians) * skewed_vector + (1-std::cos(radians))*skewed_vector_squared;
 
     return matrix;
@@ -118,8 +118,9 @@ void transform_vector() {
 
     Eigen::Matrix4d transform_matrix_wa {transformation_matrix(r, p)};
 
-    Eigen::Vector4d v_w{};
-    v_w = transform_matrix_wa * v_a;
+    Eigen::Vector4d v_w4{};
+    v_w4 = transform_matrix_wa * v_a;
+    Eigen::Vector3d v_w = v_w4.head(3);
 
     std::cout << "v_w: " << std::endl << v_w << std::endl;
 
@@ -168,6 +169,25 @@ int main()
     rotation_matrix_test(); // success
     transformation_matrix_test(); // success
     transform_vector(); // success?
+
+    Eigen::Matrix4d T_p {};
+    T_p <<  1, 0, 0, 1,
+            0, 1, 0, 2,
+            0, 0, 1, -3,
+            0, 0, 0, 1;
+
+    Eigen::Matrix4d R {};
+    R   <<  2, 3, -1, 0,
+            1, 2, 3, 0,
+            2, 1, -3, 0,
+            0, 0, 0, 1;
+
+    Eigen::Matrix4d T {T_p*R};
+
+    std::cout << T << std::endl;
+
+
+
 
     return 0;
 }
