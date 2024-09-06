@@ -53,9 +53,7 @@ Eigen::Matrix3d math::skew_symmetric(Eigen::Vector3d v) {
     return skewed_vector;
 }
 
-Eigen::Matrix3d math::rotation_matrix_from_frame_axes(const Eigen::Vector3d &x,
-                                                const Eigen::Vector3d &y,
-                                                const Eigen::Vector3d &z)
+Eigen::Matrix3d math::rotation_matrix_from_frame_axes(const Eigen::Vector3d &x, const Eigen::Vector3d &y, const Eigen::Vector3d &z)
 {
 Eigen::Matrix3d matrix;
 matrix <<
@@ -137,6 +135,44 @@ Eigen::Vector3d math::euler_zyx_from_rotation(const Eigen::Matrix3d &r)
 }
 
 Eigen::VectorXd math::twist(const Eigen::Vector3d &w, const Eigen::Vector3d &v) {
-    return Eigen::VectorXd {w(0), w(1), w(2), v(0), v(1), v(2)};
+    Eigen::VectorXd twist(6);
+    twist << w(0), w(1), w(2), v(0), v(1), v(2);
+    return twist;
 }
 
+Eigen::VectorXd math::screw_axis(const Eigen::Vector3d &q, const Eigen::Vector3d &s, double h) {
+    Eigen::Vector3d w {s.x(), s.y(), s.z()};
+    Eigen::Vector3d v {-s.cross(w) + h*s};
+    Eigen::VectorXd S(6);
+    S << w(0), w(1), w(2), v(0), v(1), v(2);
+    return S;
+}
+
+Eigen::MatrixXd math::adjoint_matrix(const Eigen::Matrix4d &tf) {
+    Eigen::Vector3d p {tf(0, 3), tf(1, 3), tf(2, 3)};
+    Eigen::Matrix3d skew_p {skew_symmetric(p)};
+    Eigen::Matrix3d R;
+        R << tf(0,0), tf(0,1), tf(0,2),
+             tf(1,0), tf(1,1), tf(1,2),
+             tf(2,0), tf(2,1), tf(2,2);
+    Eigen::Matrix3d pR {skew_p*R};
+
+    Eigen::MatrixXd adjoint(6, 6);
+    adjoint <<  R(0,0),  R(0,1),  R(0,2),  0,             0,             0,
+                R(1,0),  R(1,1),  R(1,2),  0,             0,             0,
+                R(2,0),  R(2,1),  R(2,2),  0,             0,             0,
+                pR(0,0), pR(0,1), pR(0,2), R(0,0), R(0,1), R(0,2),
+                pR(1,0), pR(1,1), pR(1,2), R(1,0), R(1,1), R(1,2),
+                pR(2,0), pR(2,1), pR(2,2), R(2,0), R(2,1), R(2,2);
+
+    return adjoint;
+}
+
+double math::cot(double x){
+ return 1/tan(x);
+}
+
+void math::wrench_in_s_and_w(){
+
+
+}
