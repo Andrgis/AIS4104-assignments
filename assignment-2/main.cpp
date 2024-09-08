@@ -73,6 +73,13 @@ int main()
 
     std::cout << " T: "<< std::endl << T << std::endl;
 
+    auto [fst, snd] = math::matrix_logarithm(T);
+    Eigen::VectorXd S = fst;
+    double theta = snd;
+
+    std::cout << " S: " << std::endl << S.transpose() << std::endl;
+    std::cout << " theta: " << theta << std::endl;
+
 
     return 0;
 }

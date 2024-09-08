@@ -242,7 +242,7 @@ Eigen::VectorXd math::wrench_f(const Eigen::VectorXd &F_a, const Eigen::VectorXd
 }
 
 // Task 3a
-Eigen::Matrix3d math::matrix_exponential(const Eigen::Vector3d &w, double theta) {
+Eigen::Matrix3d math::matrix_exponential(const Eigen::Vector3d &w, const double theta) {
     Eigen::Matrix3d skew_w {skew_symmetric(w)};
     Eigen::Matrix3d I = Eigen::Matrix3d::Identity();
     const double rads = theta*M_PI/180;
@@ -266,7 +266,7 @@ std::pair<Eigen::Vector3d, double> math::matrix_logarithm(const Eigen::Matrix3d 
 }
 
 //Task 3c. se(3) -> SE(3)
-Eigen::Matrix4d math::matrix_exponential(const Eigen::Vector3d &w, const Eigen::Vector3d &v, double theta) {
+Eigen::Matrix4d math::matrix_exponential(const Eigen::Vector3d &w, const Eigen::Vector3d &v, const double theta) {
     const Eigen::Matrix3d skew_w {skew_symmetric(w)};
     const Eigen::Matrix3d I = Eigen::Matrix3d::Identity();
     const double rads = theta*M_PI/180;
@@ -282,4 +282,53 @@ Eigen::Matrix4d math::matrix_exponential(const Eigen::Vector3d &w, const Eigen::
                         0,             0,              0,        1;
 
     return T;
+}
+
+// Task 3d. SE(3) -> se(3)
+Eigen::Matrix3d  math::G(const Eigen::Vector3d &w, const double &theta) {
+    Eigen::Matrix3d skew_w {skew_symmetric(w)};
+    Eigen::Matrix3d I = Eigen::Matrix3d::Identity();
+    const double rads = theta*M_PI/180;
+
+    return I*rads + (1-cos(rads))*skew_w + (rads- sin(rads))*skew_w*skew_w;
+}
+
+Eigen::Matrix3d math::G_inverse(const Eigen::Vector3d &w, const double &theta) {
+    Eigen::Matrix3d skew_w {skew_symmetric(w)};
+    Eigen::Matrix3d I = Eigen::Matrix3d::Identity();
+    const double rads = theta*M_PI/180;
+
+    return I/rads - skew_w/2 + (1/rads-cot(rads/2)/2)*skew_w*skew_w;
+}
+
+// Problem: Works, but outputs are up to 5 % wrong
+std::pair<Eigen::VectorXd, double> math::matrix_logarithm(const Eigen::Matrix4d &t) {
+    Eigen::Vector3d w;
+    Eigen::Vector3d v;
+    double theta;
+
+    Eigen::Matrix3d R;
+    R << t(0,0), t(0,1), t(0,2),
+        t(1,0), t(1,1), t(1,2),
+        t(2,0), t(2,1), t(2,2);
+    Eigen::Vector3d p {t(0,3), t(1,3), t(2,3)};
+
+    if(R == Eigen::Matrix3d::Identity()) {
+        w = {0,0,0};
+        v = p.normalized();
+        theta = sqrt(p(0)*p(0) + p(1)*p(1) + p(2)*p(2));
+    }
+
+    else {
+        auto [fst, scd] = math::matrix_logarithm(R);
+        w = fst;
+        theta = scd;
+
+        const Eigen::Matrix3d G_inv = math::G_inverse(w,theta*180/EIGEN_PI);
+        v = G_inv*p;
+    }
+    Eigen::VectorXd S(6);
+    S << w(0), w(1), w(2), v(0), v(1), v(2);
+
+    return std::make_pair(S, theta);
 }

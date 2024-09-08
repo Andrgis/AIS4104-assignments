@@ -29,8 +29,9 @@ namespace math {
     Eigen::Matrix3d matrix_exponential(const Eigen::Vector3d &w, double theta); // so(3) -> SO(3)
     std::pair<Eigen::Vector3d, double> matrix_logarithm(const Eigen::Matrix3d &r);  // SO(3) - so(3)
     Eigen::Matrix4d matrix_exponential(const Eigen::Vector3d &w, const Eigen::Vector3d &v, double theta); // se(3) -> SE(3)
-    std::pair<Eigen::VectorXd, double> matrix_logarithm(const Eigen::Matrix4d &t)
-
+    std::pair<Eigen::VectorXd, double> matrix_logarithm(const Eigen::Matrix4d &t); // SE(3) -> se(3)
+    Eigen::Matrix3d  G(const Eigen::Vector3d &w, const double &theta);
+    Eigen::Matrix3d  G_inverse(const Eigen::Vector3d &w, const  double &theta);
     double cot(double x);
     void wrench_in_s_and_w();
     constexpr double c_rad_to_deg{57.2957795};
