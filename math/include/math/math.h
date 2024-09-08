@@ -16,11 +16,21 @@ namespace math {
     Eigen::Matrix3d rotation_matrix_from_frame_axes(const Eigen::Vector3d &x,const Eigen::Vector3d &y,const Eigen::Vector3d &z);
     Eigen::Matrix3d rotation_matrix_from_axis_angle(const Eigen::Vector3d &axis, double degrees);
     Eigen::Matrix3d rotation_matrix_from_euler_zyx(const Eigen::Vector3d &e);
+    Eigen::Matrix3d rotation_matrix_from_euler_yzx(const Eigen::Vector3d &e);
     Eigen::Matrix4d transformation_matrix(const Eigen::Matrix3d &r, const Eigen::Vector3d &p);
     Eigen::Vector3d euler_zyx_from_rotation(const Eigen::Matrix3d &r);
     Eigen::VectorXd twist(const Eigen::Vector3d &w, const Eigen::Vector3d &v);
     Eigen::VectorXd screw_axis(const Eigen::Vector3d &q, const Eigen::Vector3d &s, double h);
     Eigen::MatrixXd adjoint_matrix(const Eigen::Matrix4d &tf);
+    Eigen::VectorXd wrench_w(const Eigen::Vector3d &f_w, const Eigen::Vector3d &m_s, const Eigen::Vector3d &e_ws);
+    Eigen::VectorXd wrench_s(const Eigen::Vector3d &f_w, const Eigen::Vector3d &m_s, const Eigen::Vector3d &e_ws);
+    Eigen::VectorXd wrench_a_to_b(const Eigen::VectorXd &F_a, const Eigen::Matrix4d &tf);
+    Eigen::VectorXd wrench_f(const Eigen::VectorXd &F_a, const Eigen::VectorXd &F_b, const Eigen::MatrixXd &tf_af, const Eigen::MatrixXd &tf_bf);
+    Eigen::Matrix3d matrix_exponential(const Eigen::Vector3d &w, double theta); // so(3) -> SO(3)
+    std::pair<Eigen::Vector3d, double> matrix_logarithm(const Eigen::Matrix3d &r);  // SO(3) - so(3)
+    Eigen::Matrix4d matrix_exponential(const Eigen::Vector3d &w, const Eigen::Vector3d &v, double theta); // se(3) -> SE(3)
+    std::pair<Eigen::VectorXd, double> matrix_logarithm(const Eigen::Matrix4d &t)
+
     double cot(double x);
     void wrench_in_s_and_w();
     constexpr double c_rad_to_deg{57.2957795};

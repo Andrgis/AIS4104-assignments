@@ -95,6 +95,23 @@ Eigen::Matrix3d math::rotation_matrix_from_euler_zyx(const Eigen::Vector3d &e)
     return R;
 }
 
+Eigen::Matrix3d math::rotation_matrix_from_euler_yzx(const Eigen::Vector3d &e)
+{
+    const Eigen::Matrix3d I {Eigen::Matrix3d::Identity()};
+    Eigen::Matrix3d R_z {};
+    Eigen::Matrix3d R_y {};
+    Eigen::Matrix3d R_x {};
+    Eigen::Matrix3d R {};
+
+    R_y = rotate_y(e(0));
+    R_z = rotate_z(e(1));
+    R_x = rotate_x(e(2));
+
+    R = I * R_y * R_z * R_x;
+
+    return R;
+}
+
 Eigen::Matrix4d math::transformation_matrix(const Eigen::Matrix3d &r, const Eigen::Vector3d &p)
 {
     Eigen::Matrix4d matrix;
@@ -169,10 +186,100 @@ Eigen::MatrixXd math::adjoint_matrix(const Eigen::Matrix4d &tf) {
 }
 
 double math::cot(double x){
- return 1/tan(x);
+    return 1/tan(x);
 }
 
 void math::wrench_in_s_and_w(){
+    const Eigen::Vector3d f_w {-30,0,0};
+    const Eigen::Vector3d m_s {0,0,2};
+    const Eigen::Vector3d e_ws {60,-60,0}; // Euler angles YZX in degrees.
+    Eigen::Matrix3d R_ws {rotation_matrix_from_euler_yzx(e_ws)};
+
+    Eigen::Vector3d m_w {R_ws*m_s};
+    Eigen::Vector3d f_s {R_ws.transpose()*f_w};
 
 
+    //std::cout << "Still in progress" << std::endl;
+    std::cout << "f_w: " << f_w.transpose() << std::endl;
+    std::cout << "m_w: " << m_w.transpose() << std::endl;
+    std::cout << "f_s: " << f_s.transpose() << std::endl;
+    std::cout << "m_s: " << m_s.transpose() << std::endl;
+    std::cout << "R_ws: " << std::endl << R_ws << std::endl;
+}
+
+Eigen::VectorXd math::wrench_w(const Eigen::Vector3d &f_w, const Eigen::Vector3d &m_s, const Eigen::Vector3d &e_ws) {
+    Eigen::Matrix3d R_ws {rotation_matrix_from_euler_yzx(e_ws)};
+    Eigen::Vector3d m_w {R_ws*m_s};
+    //Eigen::Vector3d f_s {R_ws.transpose()*f_w};
+
+    Eigen::VectorXd F_w(6);
+        F_w << m_w(0), m_w(1), m_w(2), f_w(0), f_w(1), f_w(2);
+
+    return F_w;
+}
+
+Eigen::VectorXd math::wrench_s(const Eigen::Vector3d &f_w, const Eigen::Vector3d &m_s, const Eigen::Vector3d &e_ws) {
+    Eigen::Matrix3d R_ws {rotation_matrix_from_euler_yzx(e_ws)};
+    //Eigen::Vector3d m_w {R_ws*m_s};
+    Eigen::Vector3d f_s {R_ws.transpose()*f_w};
+
+    Eigen::VectorXd F_s(6);
+    F_s << m_s(0), m_s(1), m_s(2), f_s(0), f_s(1), f_s(2);
+
+    return F_s;
+}
+
+Eigen::VectorXd math::wrench_a_to_b(const Eigen::VectorXd &F_a, const Eigen::Matrix4d &tf) {
+    Eigen::MatrixXd Ad_T(6,6);
+    Ad_T = {math::adjoint_matrix(tf)};
+
+    return Ad_T.transpose()*F_a;
+}
+
+// Task 2b
+Eigen::VectorXd math::wrench_f(const Eigen::VectorXd &F_a, const Eigen::VectorXd &F_b, const Eigen::MatrixXd &tf_af, const Eigen::MatrixXd &tf_bf) {
+    return wrench_a_to_b(F_a, tf_af) + wrench_a_to_b(F_b, tf_bf);
+}
+
+// Task 3a
+Eigen::Matrix3d math::matrix_exponential(const Eigen::Vector3d &w, double theta) {
+    Eigen::Matrix3d skew_w {skew_symmetric(w)};
+    Eigen::Matrix3d I = Eigen::Matrix3d::Identity();
+    const double rads = theta*M_PI/180;
+
+    return I + sin(rads)*skew_w + (1-cos(rads))*skew_w*skew_w;
+}
+
+// Task 3b
+std::pair<Eigen::Vector3d, double> math::matrix_logarithm(const Eigen::Matrix3d &r) {
+    /*double theta = acos((r(0,0)+r(1,1)+r(2,2)-1)/2);
+    double w_1 {(r(2,1)-r(2,3))/2/sin(theta)};
+    double w_2 {(r(0,2)-r(2,0))/2/sin(theta)};
+    double w_3 {(r(1,0)-r(0,1))/2/sin(theta)};
+
+    return std::make_pair(Eigen::Vector3d {w_1,w_2,w_3}, theta);*/
+    Eigen::AngleAxisd angle_axis(r); // Extracts the angle-axis representation from the rotation matrix
+    Eigen::Vector3d rotation_vector = angle_axis.axis() * angle_axis.angle();
+    double rotation_angle = angle_axis.angle();
+
+    return std::make_pair(rotation_vector, rotation_angle);
+}
+
+//Task 3c. se(3) -> SE(3)
+Eigen::Matrix4d math::matrix_exponential(const Eigen::Vector3d &w, const Eigen::Vector3d &v, double theta) {
+    const Eigen::Matrix3d skew_w {skew_symmetric(w)};
+    const Eigen::Matrix3d I = Eigen::Matrix3d::Identity();
+    const double rads = theta*M_PI/180;
+
+    Eigen::Matrix3d R = matrix_exponential(w, theta);
+
+    Eigen::Vector3d p = (I*rads + (1-cos(rads))*skew_w + (rads- sin(rads))*skew_w*skew_w)*v;
+
+    Eigen::Matrix4d T ;
+    T <<    R(0,0), R(0,1), R(0,2), p(0),
+            R(1,0), R(1,1), R(1,2), p(1),
+            R(2,0), R(2,1), R(2,2), p(2),
+                        0,             0,              0,        1;
+
+    return T;
 }
