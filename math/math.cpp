@@ -379,4 +379,33 @@ void math::test_planar_3r_fk_transform(const std::string &label, const std::vect
 }
 
 // Task 4c
-Eigen::Matrix4d planar_3r_fk_screw(const std::vector<double> &joint_positions)
+Eigen::Matrix4d math::planar_3r_fk_screw(const std::vector<double> &joint_positions) {
+    constexpr double L1 = 10, L2 = 10, L3 = 10;
+
+    Eigen::Matrix4d M = Eigen::Matrix4d::Identity();
+    M(0,3) = L1+L2+L3;
+
+    Eigen::Vector3d w1, w2, w3;
+    w1 << 0,0,1;
+    w2 << 0,0,1;
+    w3 << 0,0,1;
+
+    Eigen::Vector3d v1, v2, v3;
+    v1 << 0,0,0;
+    v2 << 0,-L1,0;
+    v3 << 0,-L1-L2,0;
+
+    const Eigen::Matrix4d e1 = matrix_exponential(w1,v1,joint_positions[0]);
+    const Eigen::Matrix4d e2 = matrix_exponential(w2,v2,joint_positions[1]);
+    const Eigen::Matrix4d e3 = matrix_exponential(w3,v3,joint_positions[2]);
+
+    const Eigen::Matrix4d T04 = e1 * e2 * e3 * M;
+
+    return T04;
+}
+
+void math::test_planar_3r_fk_screw(const std::string &label, const std::vector<double> &j) {
+    const Eigen::Matrix4d T {planar_3r_fk_screw(j)};
+
+    print_pose(label, T);
+}

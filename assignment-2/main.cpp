@@ -66,8 +66,8 @@ int main()
     std::cout << "Rotation vector: " << rotation_vector.transpose() << std::endl;
     std::cout << "Rotation angle: " << rotation_angle << std::endl;
 
-    Eigen::Vector3d s1 = Eigen::Vector3d{0,0,1}.normalized();
-    Eigen::Vector3d v {3.37,-3.37,0};
+    Eigen::Vector3d s1 {0.0,0.0,1.0};
+    Eigen::Vector3d v {0,20,0.0};
 
     Eigen::Matrix4d T = math::matrix_exponential(s1, v, 60);
 
@@ -94,11 +94,16 @@ int main()
     const std::string label4{"Joint configuration 4: "};
     const std::string label5{"Joint configuration 5: "};
 
-    math::test_planar_3r_fk_transform(label1, j1);
-    math::test_planar_3r_fk_transform(label2, j2);
-    math::test_planar_3r_fk_transform(label3, j3);
-    math::test_planar_3r_fk_transform(label4, j4);
-    math::test_planar_3r_fk_transform(label5, j5);
+    math::test_planar_3r_fk_transform(label1 + "Transform", j1);
+    math::test_planar_3r_fk_screw(label1 + "Screw", j1);
+    math::test_planar_3r_fk_transform(label2 + "Transform", j2);
+    math::test_planar_3r_fk_screw(label2 + "Screw", j2);
+    math::test_planar_3r_fk_transform(label3 + "Transform", j3);
+    math::test_planar_3r_fk_screw(label3 + "Screw", j3);
+    math::test_planar_3r_fk_transform(label4 + "Transform", j4);
+    math::test_planar_3r_fk_screw(label4 + "Screw", j4);
+    math::test_planar_3r_fk_transform(label5 + "Transform", j5);
+    math::test_planar_3r_fk_screw(label5 + "Screw", j5);
 
 
 

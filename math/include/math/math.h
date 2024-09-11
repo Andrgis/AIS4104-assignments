@@ -34,11 +34,13 @@ namespace math {
     Eigen::Matrix3d  G(const Eigen::Vector3d &w, const double &theta);
     Eigen::Matrix3d  G_inverse(const Eigen::Vector3d &w, const  double &theta);
     Eigen::Matrix4d planar_3r_fk_transform(const std::vector<double> &joint_positions);
+    Eigen::Matrix4d planar_3r_fk_screw(const std::vector<double> &joint_positions);
 
     double cot(double x);
     void wrench_in_s_and_w();
     void print_pose(const std::string &label, const Eigen::Matrix4d &tf);
     void test_planar_3r_fk_transform(const std::string &label, const std::vector<double> &j);
+    void test_planar_3r_fk_screw(const std::string &label, const std::vector<double> &j);
     constexpr double c_rad_to_deg{57.2957795};
     constexpr double c_deg_to_rad{0.01745329251};
 }
