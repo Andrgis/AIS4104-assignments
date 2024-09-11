@@ -151,6 +151,15 @@ Eigen::Vector3d math::euler_zyx_from_rotation(const Eigen::Matrix3d &r)
     return Eigen::Vector3d{a, b, c};
 }
 
+/* Eigen::Vector3d math::euler_zyx_from_transformation(const Eigen::Matrix4d &t) {
+    Eigen::Matrix3d R {};
+    R << t(0, 0), t(0, 1), t(0, 2),
+        t(1, 0), t(1, 1), t(1, 2),
+        t(2, 0), t(2, 1), t(2, 2);
+
+    return euler_zyx_from_rotation(R);
+}*/
+
 Eigen::VectorXd math::twist(const Eigen::Vector3d &w, const Eigen::Vector3d &v) {
     Eigen::VectorXd twist(6);
     twist << w(0), w(1), w(2), v(0), v(1), v(2);
@@ -332,3 +341,42 @@ std::pair<Eigen::VectorXd, double> math::matrix_logarithm(const Eigen::Matrix4d 
 
     return std::make_pair(S, theta);
 }
+
+void math::print_pose(const std::string &label, const Eigen::Matrix4d &tf){
+    Eigen::Matrix3d R;
+    R << tf(0,0), tf(0,1), tf(0,2),
+         tf(1,0), tf(1,1), tf(1,2),
+         tf(2,0), tf(2,1), tf(2,2);
+    Eigen::Vector3d p {tf(0,3), tf(1,3), tf(2,3)};
+
+    Eigen::Vector3d e_zyx = euler_zyx_from_rotation(R);
+
+    std::cout << "Label: " << label << std::endl;
+    std::cout << "Euler ZYX angles: " << e_zyx.transpose() << std::endl;
+    std::cout << "Linear position: " << p.transpose() << std::endl;
+    std::cout << " " << std::endl;
+}
+
+// Task 4b
+Eigen::Matrix4d math::planar_3r_fk_transform(const std::vector<double> &joint_positions) {
+    constexpr double L1 = 10, L2 = 10, L3 = 10;
+
+    // Making transformation matrix for each succeeding frame. Every joint rotates around z-axis.
+    const Eigen::Matrix4d T01 = transformation_matrix(rotate_z(joint_positions[0]), Eigen::Vector3d(0, 0, 0));
+    const Eigen::Matrix4d T12 = transformation_matrix(rotate_z(joint_positions[1]), Eigen::Vector3d(L1, 0, 0));
+    const Eigen::Matrix4d T23 = transformation_matrix(rotate_z(joint_positions[2]), Eigen::Vector3d(L2, 0, 0));
+    const Eigen::Matrix4d T34 = transformation_matrix(rotate_z(0), Eigen::Vector3d(L3, 0, 0));
+
+    Eigen::Matrix4d T04 = T01 * T12 * T23 * T34;
+
+    return T04;
+}
+
+void math::test_planar_3r_fk_transform(const std::string &label, const std::vector<double> &j) {
+    const Eigen::Matrix4d T {math::planar_3r_fk_transform(j)};
+
+    print_pose(label, T);
+}
+
+// Task 4c
+Eigen::Matrix4d planar_3r_fk_screw(const std::vector<double> &joint_positions)

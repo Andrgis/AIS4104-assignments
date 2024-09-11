@@ -19,6 +19,7 @@ namespace math {
     Eigen::Matrix3d rotation_matrix_from_euler_yzx(const Eigen::Vector3d &e);
     Eigen::Matrix4d transformation_matrix(const Eigen::Matrix3d &r, const Eigen::Vector3d &p);
     Eigen::Vector3d euler_zyx_from_rotation(const Eigen::Matrix3d &r);
+    //Eigen::Vector3d euler_zyx_from_transformation(const Eigen::Matrix4d &t);
     Eigen::VectorXd twist(const Eigen::Vector3d &w, const Eigen::Vector3d &v);
     Eigen::VectorXd screw_axis(const Eigen::Vector3d &q, const Eigen::Vector3d &s, double h);
     Eigen::MatrixXd adjoint_matrix(const Eigen::Matrix4d &tf);
@@ -32,8 +33,12 @@ namespace math {
     std::pair<Eigen::VectorXd, double> matrix_logarithm(const Eigen::Matrix4d &t); // SE(3) -> se(3)
     Eigen::Matrix3d  G(const Eigen::Vector3d &w, const double &theta);
     Eigen::Matrix3d  G_inverse(const Eigen::Vector3d &w, const  double &theta);
+    Eigen::Matrix4d planar_3r_fk_transform(const std::vector<double> &joint_positions);
+
     double cot(double x);
     void wrench_in_s_and_w();
+    void print_pose(const std::string &label, const Eigen::Matrix4d &tf);
+    void test_planar_3r_fk_transform(const std::string &label, const std::vector<double> &j);
     constexpr double c_rad_to_deg{57.2957795};
     constexpr double c_deg_to_rad{0.01745329251};
 }

@@ -80,6 +80,27 @@ int main()
     std::cout << " S: " << std::endl << S.transpose() << std::endl;
     std::cout << " theta: " << theta << std::endl;
 
+    math::print_pose("b",T);
+
+    const std::vector<double> j1{0,0,0};
+    const std::vector<double> j2{90,0,0};
+    const std::vector<double> j3{0,90,0};
+    const std::vector<double> j4{0,0,90};
+    const std::vector<double> j5{10.0,-15.0,2.75};
+
+    const std::string label1{"Joint configuration 1: "};
+    const std::string label2{"Joint configuration 2: "};
+    const std::string label3{"Joint configuration 3: "};
+    const std::string label4{"Joint configuration 4: "};
+    const std::string label5{"Joint configuration 5: "};
+
+    math::test_planar_3r_fk_transform(label1, j1);
+    math::test_planar_3r_fk_transform(label2, j2);
+    math::test_planar_3r_fk_transform(label3, j3);
+    math::test_planar_3r_fk_transform(label4, j4);
+    math::test_planar_3r_fk_transform(label5, j5);
+
+
 
     return 0;
 }
