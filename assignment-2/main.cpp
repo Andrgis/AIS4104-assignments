@@ -105,8 +105,23 @@ int main()
     math::test_planar_3r_fk_transform(label5 + "Transform", j5);
     math::test_planar_3r_fk_screw(label5 + "Screw", j5);
 
+    // Task 5
+
+    const std::vector<double> joints1{0.0, 0.0, 0.0, -90.0, 0.0, 0.0};
+    const std::vector<double> joints2{0.0, -180.0, 0.0, 0.0, 0.0, 0.0};
+    const std::vector<double> joints3{0.0, -90.0, 0.0, 0.0, 0.0, 0.0};
+
+    math::test_ur3e_fk_screw("Joint configuration 1: SCREW ", joints1);
+    math::test_ur3e_fk_transform("Joint configuration 1: TRANSFORM ", joints1);
+    math::test_ur3e_fk_screw("Joint configuration 2: SCREW ", joints2);
+    math::test_ur3e_fk_transform("Joint configuration 2: TRANSFORM ", joints2);
+    math::test_ur3e_fk_screw("Joint configuration 3: SCREW ", joints3);
+    math::test_ur3e_fk_transform("Joint configuration 3: TRANSFORM ", joints3);
 
 
     return 0;
 }
+
+
+
 
