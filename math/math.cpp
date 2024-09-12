@@ -459,17 +459,16 @@ void math::test_ur3e_fk_screw(const std::string &label, const std::vector<double
     print_pose(label, T);
 }
 
-
 Eigen::Matrix4d math::ur3e_fk_transform(const std::vector<double> &joint_positions) {
-    const double h0 {0.15185}, h1 {0.24355}, h2 {0.2132}, h3 {0.08535},
+    constexpr double h0 {0.15185}, h1 {0.24355}, h2 {0.2132}, h3 {0.08535},
         y0{0.13105}, y1{0.0921};
 
-    const Eigen::Matrix4d T01 = transformation_matrix(rotate_z(joint_positions[0]), Eigen::Vector3d(0, 0, h0));
-    const Eigen::Matrix4d T12 = transformation_matrix(rotate_z(joint_positions[1]), Eigen::Vector3d(0, h1, 0));
-    const Eigen::Matrix4d T23 = transformation_matrix(rotate_z(joint_positions[2]), Eigen::Vector3d(-h2, 0, 0));
-    const Eigen::Matrix4d T34 = transformation_matrix(rotate_z(joint_positions[3]), Eigen::Vector3d(0, 0, y0));
-    const Eigen::Matrix4d T45 = transformation_matrix(rotate_z(joint_positions[4]), Eigen::Vector3d(0, 0, h3));
-    const Eigen::Matrix4d T56 = transformation_matrix(rotate_z(joint_positions[5]), Eigen::Vector3d(0, 0, y1));
+    const Eigen::Matrix4d T01 = transformation_matrix(rotate_x(90)*rotate_z(joint_positions[0]), Eigen::Vector3d(0, 0, h0)); //ok
+    const Eigen::Matrix4d T12 = transformation_matrix(rotate_z(-90)*rotate_z(joint_positions[1]), Eigen::Vector3d(0, h1, 0)); //ok
+    const Eigen::Matrix4d T23 = transformation_matrix(rotate_z(joint_positions[2]), Eigen::Vector3d(-h2, 0, 0)); //ok
+    const Eigen::Matrix4d T34 = transformation_matrix(rotate_z(-90)*rotate_y(-90)*rotate_z(joint_positions[3]), Eigen::Vector3d(0, 0, y0)); //ok?
+    const Eigen::Matrix4d T45 = transformation_matrix(rotate_x(-90)*rotate_z(joint_positions[4]), Eigen::Vector3d(0, 0, h3)); //ok
+    const Eigen::Matrix4d T56 = transformation_matrix(rotate_z(joint_positions[5]), Eigen::Vector3d(0, 0, y1)); //ok
 
     Eigen::Matrix4d T06 = T01 * T12 * T23 * T34 * T45 * T56;
 
