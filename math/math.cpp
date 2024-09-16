@@ -252,8 +252,8 @@ Eigen::VectorXd math::wrench_f(const Eigen::VectorXd &F_a, const Eigen::VectorXd
 
 // Task 3a
 Eigen::Matrix3d math::matrix_exponential(const Eigen::Vector3d &w, const double theta) {
-    Eigen::Matrix3d skew_w {skew_symmetric(w)};
-    Eigen::Matrix3d I = Eigen::Matrix3d::Identity();
+    const Eigen::Matrix3d skew_w {skew_symmetric(w)};
+    const Eigen::Matrix3d I = Eigen::Matrix3d::Identity();
     const double rads = theta*M_PI/180;
 
     return I + sin(rads)*skew_w + (1-cos(rads))*skew_w*skew_w;
@@ -282,7 +282,7 @@ Eigen::Matrix4d math::matrix_exponential(const Eigen::Vector3d &w, const Eigen::
 
     Eigen::Matrix3d R = matrix_exponential(w, theta);
 
-    Eigen::Vector3d p = (I*rads + (1-cos(rads))*skew_w + (rads- sin(rads))*skew_w*skew_w)*v;
+    Eigen::Vector3d p = (I*rads + (1-cos(rads))*skew_w + (rads - sin(rads))*skew_w*skew_w)*v;
 
     Eigen::Matrix4d T ;
     T <<    R(0,0), R(0,1), R(0,2), p(0),
@@ -414,13 +414,13 @@ void math::test_planar_3r_fk_screw(const std::string &label, const std::vector<d
 // TASK 5
 // Task 5a
 Eigen::Matrix4d math::ur3e_fk_screw(const std::vector<double> &joint_positions) {  //OK
-    constexpr double h0 {0.15185}, h1 {0.24355}, h2 {0.2132}, h3 {0.08535},
-    y0{0.13105}, y1{0.0921};
+    constexpr double h1 {0.15185}, l1 {0.24355}, l2 {0.2132}, h2 {0.08535},
+    y1{0.13105}, y2{0.0921};
 
     Eigen::Matrix4d M; //ok
-    M << -1,  0, 0, 0,
-          0,  0,-1, -y0-y1,
-          0, -1, 0, h0+h1+h2+h3,
+    M <<  1,  0, 0, -l1-l2,
+          0,  0,-1, -y1-y2,
+          0,  1, 0, h1-h2,
           0,  0, 0, 1;
 
     Eigen::Vector3d w0, w1, w2, w3, w4, w5;
@@ -428,16 +428,16 @@ Eigen::Matrix4d math::ur3e_fk_screw(const std::vector<double> &joint_positions) 
     w1 << 0,-1,0; //ok
     w2 << 0,-1,0; //ok
     w3 << 0,-1,0; //ok
-    w4 << 0,0,1;  //ok
+    w4 << 0,0,-1;  //ok
     w5 << 0,-1,0; //ok
 
     Eigen::Vector3d v0, v1, v2, v3, v4, v5;
     v0 << 0,0,0; //ok
-    v1 << h0,0,0;  //ok
-    v2 << h0+h1,0,0; //ok
-    v3 << h0+h1+h2,0,0; //ok
-    v4 << -y0,0,0; //ok
-    v5 << h0+h1+h2+h3,0,0; //ok
+    v1 << h1,0,0;  //ok
+    v2 << h1,0,l1; //ok
+    v3 << h1,0,l1+l2; //ok
+    v4 << y1,-l1-l2,0; //ok
+    v5 << h1-h2,0,l1+l2; //ok
 
 
     const Eigen::Matrix4d e0 = matrix_exponential(w0,v0,joint_positions[0]);
@@ -459,16 +459,28 @@ void math::test_ur3e_fk_screw(const std::string &label, const std::vector<double
     print_pose(label, T);
 }
 
-Eigen::Matrix4d math::ur3e_fk_transform(const std::vector<double> &joint_positions) {
+Eigen::Matrix4d DH_transformation_matrix(const double &joint_angle, const double &alpha, const double &a, const double &d) {
+    Eigen::Matrix4d T_mn;
+    double joint_rads = joint_angle*M_PI/180;
+    double alpha_rads = alpha*M_PI/180;
+    T_mn << cos(joint_rads), -sin(joint_rads)*cos(alpha_rads),  sin(joint_rads)*sin(alpha_rads), a*cos(joint_rads),  //ok
+            sin(joint_rads),  cos(joint_rads)*cos(alpha_rads), -cos(joint_rads)*sin(alpha_rads), a*sin(joint_rads),
+                          0,                  sin(alpha_rads),                  cos(alpha_rads),                 d,
+                          0,                                0,                                0,                 1;
+    return T_mn;
+}
+
+Eigen::Matrix4d math::ur3e_fk_transform(const std::vector<double> &joint_positions) { //YES!
     constexpr double h0 {0.15185}, h1 {0.24355}, h2 {0.2132}, h3 {0.08535},
         y0{0.13105}, y1{0.0921};
 
-    const Eigen::Matrix4d T01 = transformation_matrix(rotate_x(90)*rotate_z(joint_positions[0]), Eigen::Vector3d(0, 0, h0)); //ok
-    const Eigen::Matrix4d T12 = transformation_matrix(rotate_z(-90)*rotate_z(joint_positions[1]), Eigen::Vector3d(0, h1, 0)); //ok
-    const Eigen::Matrix4d T23 = transformation_matrix(rotate_z(joint_positions[2]), Eigen::Vector3d(-h2, 0, 0)); //ok
-    const Eigen::Matrix4d T34 = transformation_matrix(rotate_z(-90)*rotate_y(-90)*rotate_z(joint_positions[3]), Eigen::Vector3d(0, 0, y0)); //ok?
-    const Eigen::Matrix4d T45 = transformation_matrix(rotate_x(-90)*rotate_z(joint_positions[4]), Eigen::Vector3d(0, 0, h3)); //ok
-    const Eigen::Matrix4d T56 = transformation_matrix(rotate_z(joint_positions[5]), Eigen::Vector3d(0, 0, y1)); //ok
+    const Eigen::Matrix4d T01 = DH_transformation_matrix(joint_positions[0], 90, 0, h0);
+    const Eigen::Matrix4d T12 = DH_transformation_matrix(joint_positions[1], 0, -h1, 0);
+    const Eigen::Matrix4d T23 = DH_transformation_matrix(joint_positions[2], 0, -h2, 0);
+    const Eigen::Matrix4d T34 = DH_transformation_matrix(joint_positions[3], 90, 0, y0);
+    const Eigen::Matrix4d T45 = DH_transformation_matrix(joint_positions[4], -90, 0, h3);
+    const Eigen::Matrix4d T56 = DH_transformation_matrix(joint_positions[5], 0, 0, y1);
+
 
     Eigen::Matrix4d T06 = T01 * T12 * T23 * T34 * T45 * T56;
 
