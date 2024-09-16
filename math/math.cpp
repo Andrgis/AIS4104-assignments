@@ -261,17 +261,37 @@ Eigen::Matrix3d math::matrix_exponential(const Eigen::Vector3d &w, const double 
 
 // Task 3b
 std::pair<Eigen::Vector3d, double> math::matrix_logarithm(const Eigen::Matrix3d &r) {
-    /*double theta = acos((r(0,0)+r(1,1)+r(2,2)-1)/2);
-    double w_1 {(r(2,1)-r(2,3))/2/sin(theta)};
-    double w_2 {(r(0,2)-r(2,0))/2/sin(theta)};
-    double w_3 {(r(1,0)-r(0,1))/2/sin(theta)};
+    double theta {};
+    double w_1 {};
+    double w_2 {};
+    double w_3 {};
+    Eigen::Vector3d w;
+    const double trR = r(0,0)+r(1,1)+r(2,2);
 
-    return std::make_pair(Eigen::Vector3d {w_1,w_2,w_3}, theta);*/
-    Eigen::AngleAxisd angle_axis(r); // Extracts the angle-axis representation from the rotation matrix
+    if(r == Eigen::Matrix3d::Identity()) {
+        theta = 0;
+        w = {0,0,0};
+    }
+    else if(trR == -1) {
+        theta = EIGEN_PI;
+        w_1 = r(0,2)/sqrt(2*(1+r(2,2)));
+        w_2 = r(1,2)/sqrt(2*(1+r(2,2)));
+        w_3 = 1 + r(2,2)/sqrt(2*(1+r(2,2)));
+        w = {w_1,w_2,w_3};
+    }
+    else {
+        theta = acos((trR-1)/2);
+        Eigen::Matrix3d skew_w = (r-r.transpose())/(2*sin(theta));
+        w = {skew_w(2,1), skew_w(0,2), skew_w(1,0)};
+    }
+
+
+    return std::make_pair(w, theta*180/EIGEN_PI);
+    /*Eigen::AngleAxisd angle_axis(r); // Extracts the angle-axis representation from the rotation matrix
     Eigen::Vector3d rotation_vector = angle_axis.axis() * angle_axis.angle();
     double rotation_angle = angle_axis.angle();
 
-    return std::make_pair(rotation_vector, rotation_angle);
+    return std::make_pair(rotation_vector, rotation_angle*180/EIGEN_PI);*/
 }
 
 //Task 3c. se(3) -> SE(3)
@@ -302,19 +322,19 @@ Eigen::Matrix3d  math::G(const Eigen::Vector3d &w, const double &theta) {
     return I*rads + (1-cos(rads))*skew_w + (rads- sin(rads))*skew_w*skew_w;
 }
 
-Eigen::Matrix3d math::G_inverse(const Eigen::Vector3d &w, const double &theta) {
+Eigen::Matrix3d math::G_inverse(const Eigen::Vector3d &w, const double &degrees) {
     Eigen::Matrix3d skew_w {skew_symmetric(w)};
     Eigen::Matrix3d I = Eigen::Matrix3d::Identity();
-    const double rads = theta*M_PI/180;
+    const double rads = degrees*M_PI/180;
 
     return I/rads - skew_w/2 + (1/rads-cot(rads/2)/2)*skew_w*skew_w;
 }
 
-// Problem: Works, but outputs are up to 5 % wrong
+// Working
 std::pair<Eigen::VectorXd, double> math::matrix_logarithm(const Eigen::Matrix4d &t) {
     Eigen::Vector3d w;
     Eigen::Vector3d v;
-    double theta;
+    double degrees;
 
     Eigen::Matrix3d R;
     R << t(0,0), t(0,1), t(0,2),
@@ -325,21 +345,21 @@ std::pair<Eigen::VectorXd, double> math::matrix_logarithm(const Eigen::Matrix4d 
     if(R == Eigen::Matrix3d::Identity()) {
         w = {0,0,0};
         v = p.normalized();
-        theta = sqrt(p(0)*p(0) + p(1)*p(1) + p(2)*p(2));
+        degrees = sqrt(p(0)*p(0) + p(1)*p(1) + p(2)*p(2));
     }
 
     else {
         auto [fst, scd] = math::matrix_logarithm(R);
         w = fst;
-        theta = scd;
+        degrees = scd;
 
-        const Eigen::Matrix3d G_inv = math::G_inverse(w,theta*180/EIGEN_PI);
+        const Eigen::Matrix3d G_inv = math::G_inverse(w,degrees);
         v = G_inv*p;
     }
     Eigen::VectorXd S(6);
     S << w(0), w(1), w(2), v(0), v(1), v(2);
 
-    return std::make_pair(S, theta);
+    return std::make_pair(S, degrees);
 }
 
 void math::print_pose(const std::string &label, const Eigen::Matrix4d &tf){

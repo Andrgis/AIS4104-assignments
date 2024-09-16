@@ -32,7 +32,7 @@ namespace math {
     Eigen::Matrix4d matrix_exponential(const Eigen::Vector3d &w, const Eigen::Vector3d &v, double theta); // se(3) -> SE(3)
     std::pair<Eigen::VectorXd, double> matrix_logarithm(const Eigen::Matrix4d &t); // SE(3) -> se(3)
     Eigen::Matrix3d  G(const Eigen::Vector3d &w, const double &theta);
-    Eigen::Matrix3d  G_inverse(const Eigen::Vector3d &w, const  double &theta);
+    Eigen::Matrix3d  G_inverse(const Eigen::Vector3d &w, const  double &degrees);
     Eigen::Matrix4d planar_3r_fk_transform(const std::vector<double> &joint_positions);
     Eigen::Matrix4d planar_3r_fk_screw(const std::vector<double> &joint_positions);
     Eigen::Matrix4d ur3e_fk_screw(const std::vector<double> &joint_positions);
