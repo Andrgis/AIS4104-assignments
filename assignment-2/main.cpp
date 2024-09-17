@@ -7,6 +7,7 @@
 
 int main()
 {
+    /*
     Eigen::Vector3d e = Eigen::Vector3d{60.0,45.0,30.0};
     Eigen::Vector3d ev = Eigen::Vector3d{60.0,45.0,30.0};
     Eigen::Vector3d s = Eigen::Vector3d{1,-1,2}.normalized();
@@ -14,11 +15,11 @@ int main()
     Eigen::Vector3d w = Eigen::Vector3d{1,1,0}.normalized();
     Eigen::Matrix3d R = math::rotation_matrix_from_euler_zyx(e);
     Eigen::Vector3d ea = math::euler_zyx_from_rotation(R);
-    /* Eigen::Matrix4d tf;
+     Eigen::Matrix4d tf;
         tf << 0,-1,0,2,
             1,0,0,1,
             0,0,-1,3,
-            0,0,0,1; */
+            0,0,0,1;
 
     Eigen::Matrix3d R_af;
       R_af << 1,0,0,0,0,1,0,-1,0;
@@ -48,9 +49,10 @@ int main()
     //std::cout << " Adjoint Matrix, [Ad_T]: " << std::endl << math::adjoint_matrix(tf) <<std::endl;
 
     std::cout << " cot(pi/6): " << math::cot(EIGEN_PI/6) << std::endl;
-
+*/
+    std::cout<<"TASK 2"<<std::endl;
     math::wrench_in_s_and_w();
-
+/*
     std::cout << " F_f: " << F_f.transpose() << std::endl;
 
     std::cout << " R: "<< std::endl << R << std::endl;
@@ -80,7 +82,8 @@ int main()
     std::cout << " S: " << std::endl << S.transpose() << std::endl;
     std::cout << " theta: " << theta << std::endl;
 
-    math::print_pose("b",T);
+    math::print_pose("b",T); */
+    std::cout<<"TASK 4"<<std::endl<<std::endl;
 
     const std::vector<double> j1{0,0,0};
     const std::vector<double> j2{90,0,0};
@@ -106,6 +109,7 @@ int main()
     math::test_planar_3r_fk_screw(label5 + "Screw", j5);
 
     // Task 5
+    std::cout<<"TASK 5"<<std::endl<<std::endl;
 
     const std::vector<double> joints1{0.0, 0.0, 0.0, -90.0, 0.0, 0.0};
     const std::vector<double> joints2{0.0, -180.0, 0.0, 0.0, 0.0, 0.0};

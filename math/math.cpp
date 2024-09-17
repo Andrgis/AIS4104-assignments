@@ -213,7 +213,7 @@ void math::wrench_in_s_and_w(){
     std::cout << "m_w: " << m_w.transpose() << std::endl;
     std::cout << "f_s: " << f_s.transpose() << std::endl;
     std::cout << "m_s: " << m_s.transpose() << std::endl;
-    std::cout << "R_ws: " << std::endl << R_ws << std::endl;
+    std::cout << "R_ws: " << std::endl << R_ws << std::endl << std::endl;
 }
 
 Eigen::VectorXd math::wrench_w(const Eigen::Vector3d &f_w, const Eigen::Vector3d &m_s, const Eigen::Vector3d &e_ws) {
@@ -287,11 +287,6 @@ std::pair<Eigen::Vector3d, double> math::matrix_logarithm(const Eigen::Matrix3d 
 
 
     return std::make_pair(w, theta*180/EIGEN_PI);
-    /*Eigen::AngleAxisd angle_axis(r); // Extracts the angle-axis representation from the rotation matrix
-    Eigen::Vector3d rotation_vector = angle_axis.axis() * angle_axis.angle();
-    double rotation_angle = angle_axis.angle();
-
-    return std::make_pair(rotation_vector, rotation_angle*180/EIGEN_PI);*/
 }
 
 //Task 3c. se(3) -> SE(3)
