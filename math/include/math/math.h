@@ -25,7 +25,7 @@ namespace math {
     Eigen::MatrixXd adjoint_matrix(const Eigen::Matrix4d &tf);
     Eigen::VectorXd wrench_w(const Eigen::Vector3d &f_w, const Eigen::Vector3d &m_s, const Eigen::Vector3d &e_ws);
     Eigen::VectorXd wrench_s(const Eigen::Vector3d &f_w, const Eigen::Vector3d &m_s, const Eigen::Vector3d &e_ws);
-    Eigen::VectorXd wrench_a_to_b(const Eigen::VectorXd &F_a, const Eigen::Matrix4d &tf);
+    Eigen::VectorXd wrench_a_to_b(const Eigen::VectorXd &F_a, const Eigen::Matrix4d &tf_ab);
     Eigen::VectorXd wrench_f(const Eigen::VectorXd &F_a, const Eigen::VectorXd &F_b, const Eigen::MatrixXd &tf_af, const Eigen::MatrixXd &tf_bf);
     Eigen::Matrix3d matrix_exponential(const Eigen::Vector3d &w, double theta); // so(3) -> SO(3)
     std::pair<Eigen::Vector3d, double> matrix_logarithm(const Eigen::Matrix3d &r);  // SO(3) - so(3)
@@ -37,6 +37,11 @@ namespace math {
     Eigen::Matrix4d planar_3r_fk_screw(const std::vector<double> &joint_positions);
     Eigen::Matrix4d ur3e_fk_screw(const std::vector<double> &joint_positions);
     Eigen::Matrix4d ur3e_fk_transform(const std::vector<double> &joint_positions);
+    Eigen::VectorXd std_vector_to_eigen(const std::vector<double> &v);
+
+    bool is_average_below_eps(const std::vector<double> &values, double eps = 10e-7, uint8_t n_values = 5u);
+    std::pair<Eigen::Matrix4d, std::vector<Eigen::VectorXd>> ur3e_space_chain();
+    Eigen::Matrix4d ur3e_space_fk(const Eigen::VectorXd &joint_positions);
 
     
     double cot(double x);

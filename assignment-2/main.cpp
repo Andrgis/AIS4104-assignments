@@ -111,7 +111,7 @@ int main()
     // Task 5
     std::cout<<"TASK 5"<<std::endl<<std::endl;
 
-    const std::vector<double> joints1{0.0, 0.0, 0.0, -90.0, 0.0, 0.0};
+    const std::vector<double> joints1{10.0, 20.0, 30.0, 40.0, 50.0, 60.0};
     const std::vector<double> joints2{0.0, -180.0, 0.0, 0.0, 0.0, 0.0};
     const std::vector<double> joints3{0.0, -90.0, 0.0, 0.0, 0.0, 0.0};
 
