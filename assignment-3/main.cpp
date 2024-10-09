@@ -28,7 +28,23 @@ void test_T1c() {
     std::cout << std::endl;
 }
 void test_T1d() {
-    math::print_pose("Task 1d: ",math::ur3e_space_fk(math::std_vector_to_eigen(std::vector<double>{10.0, 20.0, 30.0, 40.0, 50.0, 60.0})));
+    math::print_pose(math::ur3e_space_fk(math::std_vector_to_eigen(std::vector<double>{10.0, 20.0, 30.0, 40.0, 50.0, 60.0})),"Task 1d (Forward kinematics using space frame method): ");
+}
+void test_T1e() {
+    std::pair<Eigen::Matrix4d, std::vector<Eigen::VectorXd>> result = math::ur3e_body_chain();
+    Eigen::Matrix4d M = result.first;
+    std::vector<Eigen::VectorXd> BBB = result.second;
+    std::cout << "Task 1 e: " << std::endl;
+    std::cout << "Testing ur3e_space_chain(): " << std::endl;
+    std::cout << "Frame of base in zero configuration (Body frame): " << std::endl << M << std::endl;
+    std::cout << "Screw axes in Body frame: " << std::endl;
+    for(int i=0; i < BBB.size(); i++) {
+        std::cout << "B" << i << ": " << BBB[i].transpose() << std::endl;
+    }
+    std::cout << std::endl;
+}
+void test_T1f() {
+    math::print_pose(math::ur3e_space_fk(math::std_vector_to_eigen(std::vector<double>{10.0, 20.0, 30.0, 40.0, 50.0, 60.0})),"Task 1f (Forward kinematics using body frame method): ");
 }
 
 
@@ -38,6 +54,9 @@ int main()
     test_T1b();
     test_T1c();
     test_T1d();
+    test_T1e();
+    test_T1f();
+    math::ur3e_test_fk();
 
     return 0;
 }

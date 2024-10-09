@@ -5,6 +5,7 @@
 #ifndef MATH_H
 #define MATH_H
 #include <Eigen/Dense>
+#include <functional>
 
 namespace math {
     bool floatEquals(double a, double b);
@@ -38,15 +39,18 @@ namespace math {
     Eigen::Matrix4d ur3e_fk_screw(const std::vector<double> &joint_positions);
     Eigen::Matrix4d ur3e_fk_transform(const std::vector<double> &joint_positions);
     Eigen::VectorXd std_vector_to_eigen(const std::vector<double> &v);
-
+    // Assignment 3
     bool is_average_below_eps(const std::vector<double> &values, double eps = 10e-7, uint8_t n_values = 5u);
     std::pair<Eigen::Matrix4d, std::vector<Eigen::VectorXd>> ur3e_space_chain();
     Eigen::Matrix4d ur3e_space_fk(const Eigen::VectorXd &joint_positions);
+    std::pair<Eigen::Matrix4d, std::vector<Eigen::VectorXd>> ur3e_body_chain();
+    Eigen::Matrix4d ur3e_body_fk(const Eigen::VectorXd &joint_positions);
+    void ur3e_test_fk();
 
     
     double cot(double x);
     void wrench_in_s_and_w();
-    void print_pose(const std::string &label, const Eigen::Matrix4d &tf);
+    void print_pose(const Eigen::Matrix4d &tf, std::string label = "N/A");
     void test_planar_3r_fk_transform(const std::string &label, const std::vector<double> &joint_positions);
     void test_planar_3r_fk_screw(const std::string &label, const std::vector<double> &joint_positions);
     void test_ur3e_fk_screw(const std::string &label, const std::vector<double> &joint_positions);

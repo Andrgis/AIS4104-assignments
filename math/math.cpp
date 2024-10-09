@@ -347,7 +347,7 @@ std::pair<Eigen::VectorXd, double> math::matrix_logarithm(const Eigen::Matrix4d 
     return std::make_pair(S, degrees);
 }
 
-void math::print_pose(const std::string &label, const Eigen::Matrix4d &tf) {
+void math::print_pose(const Eigen::Matrix4d &tf, std::string label) {
     Eigen::Matrix3d R;
     R << tf(0, 0), tf(0, 1), tf(0, 2),
             tf(1, 0), tf(1, 1), tf(1, 2),
@@ -380,7 +380,7 @@ Eigen::Matrix4d math::planar_3r_fk_transform(const std::vector<double> &joint_po
 void math::test_planar_3r_fk_transform(const std::string &label, const std::vector<double> &joint_positions) {
     const Eigen::Matrix4d T{math::planar_3r_fk_transform(joint_positions)};
 
-    print_pose(label, T);
+    print_pose(T,label);
 }
 
 // Task 4c
@@ -412,7 +412,7 @@ Eigen::Matrix4d math::planar_3r_fk_screw(const std::vector<double> &joint_positi
 void math::test_planar_3r_fk_screw(const std::string &label, const std::vector<double> &joint_positions) {
     const Eigen::Matrix4d T{planar_3r_fk_screw(joint_positions)};
 
-    print_pose(label, T);
+    print_pose(T,label);
 }
 
 // TASK 5
@@ -461,7 +461,7 @@ Eigen::Matrix4d math::ur3e_fk_screw(const std::vector<double> &joint_positions) 
 void math::test_ur3e_fk_screw(const std::string &label, const std::vector<double> &joint_positions) {
     const Eigen::Matrix4d T{ur3e_fk_screw(joint_positions)};
 
-    print_pose(label, T);
+    print_pose(T,label);
 }
 
 Eigen::Matrix4d DH_transformation_matrix(const double &joint_angle, const double &alpha, const double &a,
@@ -498,7 +498,7 @@ Eigen::Matrix4d math::ur3e_fk_transform(const std::vector<double> &joint_positio
 void math::test_ur3e_fk_transform(const std::string &label, const std::vector<double> &joint_positions) {
     const Eigen::Matrix4d T{ur3e_fk_transform(joint_positions)};
 
-    print_pose(label, T);
+    print_pose(T,label);
 }
 
 // Assignment 3
@@ -581,5 +581,47 @@ Eigen::Matrix4d math::ur3e_space_fk(const Eigen::VectorXd &joint_positions){
 
     return T;
 }
+// T1e // Good
+std::pair<Eigen::Matrix4d, std::vector<Eigen::VectorXd>> math::ur3e_body_chain() {
+    std::pair<Eigen::Matrix4d, std::vector<Eigen::VectorXd>> result = ur3e_space_chain();
+    Eigen::Matrix4d M = result.first;
+    std::vector<Eigen::VectorXd> SSS = result.second;
+    Eigen::MatrixXd Ad_Minv = adjoint_matrix(M.inverse());
+    std::vector<Eigen::VectorXd> BBB(SSS.size());
 
+    for (int i=0 ; i<SSS.size() ; i++) {
+        const Eigen::VectorXd B = Ad_Minv * SSS[i];
+        BBB[i] = B;
+    }
+
+    return std::make_pair(M.inverse(), BBB);
+}
+// T1f // Good
+Eigen::Matrix4d math::ur3e_body_fk(const Eigen::VectorXd &joint_positions) {
+    std::pair<Eigen::Matrix4d, std::vector<Eigen::VectorXd>> result = ur3e_body_chain();
+    Eigen::Matrix4d T_B = result.first;
+    std::vector<Eigen::VectorXd> BBB = result.second;
+
+    for (int i=0; i<BBB.size(); i++) {
+        Eigen::Matrix4d ei = matrix_exponential(BBB[i].block<3,1>(0,0), BBB[i].block<3,1>(3,0), joint_positions[i]);
+        T_B = T_B * ei;
+    }
+
+    return T_B;
+}
+// T1g // GOOD! Both reference frames are describing the same forward kinematics
+void math::ur3e_test_fk(){
+std::cout << "Forward kinematics tests" << std::endl;
+print_pose(ur3e_space_fk(std_vector_to_eigen(std::vector<double>{0.0, 0.0, 0.0, 0.0, 0.0, 0.0})));
+print_pose(ur3e_body_fk(std_vector_to_eigen(std::vector<double>{0.0, 0.0, 0.0, 0.0, 0.0, 0.0})));
+std::cout << std::endl;
+print_pose(ur3e_space_fk(std_vector_to_eigen(std::vector<double>{0.0, 0.0, 0.0, -90.0, 0.0, 0.0})));
+print_pose(ur3e_body_fk(std_vector_to_eigen(std::vector<double>{0.0, 0.0, 0.0, -90.0, 0.0, 0.0})));
+std::cout << std::endl;
+print_pose(ur3e_space_fk(std_vector_to_eigen(std::vector<double>{0.0, 0.0, -180.0, 0.0, 0.0, 0.0})));
+print_pose(ur3e_body_fk(std_vector_to_eigen(std::vector<double>{0.0, 0.0, -180.0, 0.0, 0.0, 0.0})));
+std::cout << std::endl;
+print_pose(ur3e_space_fk(std_vector_to_eigen(std::vector<double>{0.0, 0.0, -90.0, 0.0, 0.0, 0.0})));
+print_pose(ur3e_body_fk(std_vector_to_eigen(std::vector<double>{0.0, 0.0, -90.0, 0.0, 0.0, 0.0})));
+}
 
