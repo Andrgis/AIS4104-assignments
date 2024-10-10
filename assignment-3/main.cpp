@@ -48,6 +48,9 @@ void test_T1f() {
 }
 
 
+
+
+
 int main()
 {
     test_T1a();
@@ -57,7 +60,8 @@ int main()
     test_T1e();
     test_T1f();
     math::ur3e_test_fk();
-
+    math::test_root_find();
+    math::ur3e_test_jacobian();
     return 0;
 }
 

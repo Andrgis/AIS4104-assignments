@@ -46,7 +46,16 @@ namespace math {
     std::pair<Eigen::Matrix4d, std::vector<Eigen::VectorXd>> ur3e_body_chain();
     Eigen::Matrix4d ur3e_body_fk(const Eigen::VectorXd &joint_positions);
     void ur3e_test_fk();
-
+    std::pair<uint32_t, double> newton_raphson_root_find(const std::function<double(double)> &f, double &x_0, double dx_0 = 0.5, double eps = 10e-7);
+    std::pair<uint32_t, double> gradient_descent_extreme_find(const std::function<double(double)> &f, double &x_0, double gamma = 0.1, double dx_0 = 0.5, double eps = 10e-7);
+    std::pair<uint32_t, double> gradient_descent_root_find(const std::function<double(double)> &f, double &x_0, double gamma = 0.0001, double dx_0 = 0.5, double eps = 10e-7);
+    void test_newton_raphson_root_find(const std::function<double(double)> &f, double x0);
+    void test_gradient_descent_root_find(const std::function<double(double)> &f, double x0);
+    void test_root_find();
+    Eigen::MatrixXd ur3e_space_jacobian(const Eigen::VectorXd &current_joint_positions);
+    Eigen::MatrixXd ur3e_body_jacobian(const Eigen::VectorXd &current_joint_positions);
+    void ur3e_test_jacobian(const Eigen::VectorXd &joint_positions);
+    void ur3e_test_jacobian();
     
     double cot(double x);
     void wrench_in_s_and_w();

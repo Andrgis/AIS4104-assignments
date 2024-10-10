@@ -625,3 +625,143 @@ print_pose(ur3e_space_fk(std_vector_to_eigen(std::vector<double>{0.0, 0.0, -90.0
 print_pose(ur3e_body_fk(std_vector_to_eigen(std::vector<double>{0.0, 0.0, -90.0, 0.0, 0.0, 0.0})));
 }
 
+// Task 2: Numerical optimization
+double dfdx(const std::function<double(double)> &f, const double &x, const double &dx = 0.00001) {
+    return (f(x+dx)-f(x-dx))/(2*dx);
+}
+
+// T2a - Implement Newton-Raphson to find the root of a scalar function.
+std::pair<uint32_t, double> math::newton_raphson_root_find(const std::function<double(double)> &f, double &x_0, double dx_0, double eps) {
+    double x_n = x_0;
+    uint32_t iter{0};
+    uint32_t max_iter{1000};
+
+    for (double dx_n = dx_0 ; dx_n>eps and iter < max_iter; iter++) {
+        double df_n = dfdx(f, x_n);
+        double x_np = x_n - f(x_n)/df_n;
+        dx_n = std::abs(x_np-x_n);
+        x_n = x_np;
+    }
+
+    return std::make_pair(iter, x_n);
+}
+// Finds extreme points. //Seems to be working
+std::pair<uint32_t, double> math::gradient_descent_extreme_find(const std::function<double(double)> &f, double &x_0, double gamma, double dx_0, double eps) {
+    double x_n = x_0;
+    // double x_n = x_nm - gamma*dfdx(f, x_nm);
+    uint32_t iter{0};
+    uint32_t max_iter{1000};
+
+    for (double dx_n = dx_0 ; dx_n>eps and iter < max_iter; iter++) {
+        double df_n = dfdx(f, x_n);
+        // double df_nm = dfdx(f, x_nm);
+        // gamma = std::abs((x_n-x_nm)*(df_n-df_nm))/(std::abs(df_n-df_nm)*std::abs(df_n-df_nm));
+        double x_np = x_n - gamma*df_n;
+        dx_n = std::abs(x_np-x_n);
+        x_n = x_np;
+    }
+
+    return std::make_pair(iter, x_n);
+}
+// Finds root.  // Seems to be working
+std::pair<uint32_t, double> math::gradient_descent_root_find(const std::function<double(double)> &f, double &x_0, double gamma, double dx_0, double eps) {
+    double x_nm = x_0;
+    double x_n = x_nm + gamma*f(x_nm);
+    uint32_t iter{0};
+    uint32_t max_iter{1000};
+
+    for (double dx_n = dx_0 ; dx_n>eps and iter < max_iter; iter++) {
+        double df_n = f(x_n);
+        double df_nm = f(x_nm);
+        gamma = std::abs((x_n-x_nm)*(df_n-df_nm))/(std::abs(df_n-df_nm)*std::abs(df_n-df_nm)); // gamma update (en.wikipedia.org/wiki/Gradient_descent)
+        //std::cout << gamma << std::endl;
+        double x_np = x_n + gamma*df_n;
+        dx_n = std::abs(x_np-x_n);
+        x_nm = x_n;
+        x_n = x_np;
+    }
+
+    return std::make_pair(iter, x_n);
+}
+
+
+void math::test_newton_raphson_root_find(const std::function<double(double)> &f, double x0){
+    auto [iterations, x_hat] = newton_raphson_root_find(f, x0);
+    std::cout << "NR root f, x0=" << x0 << " -> it=" << iterations << " x=" << x_hat << " f(x)=" << f(x_hat) << std::endl;
+}
+
+void math::test_gradient_descent_root_find(const std::function<double(double)> &f, double x0)
+{
+auto [iterations, x_hat] = gradient_descent_root_find(f, x0);
+std::cout << "GD root f, x0=" << x0 << " -> it=" << iterations << " x=" << x_hat << " f(x)=" << f(x_hat) << std::endl;
+}
+
+void math::test_root_find(){
+    std::cout << "Root finding tests" << std::endl;
+    auto f1 = [](double x)
+    {
+    return (x - 3.0) * (x - 3.0) - 1.0;
+    };
+    test_newton_raphson_root_find(f1, -20);
+    test_gradient_descent_root_find(f1, -200);
+    std::cout << " " << std::endl;
+}
+// Task 3 - Velocity kinematics: UR3e 6R open chain
+// T.3 a) Construct the space Jacobian.
+Eigen::MatrixXd math::ur3e_space_jacobian(const Eigen::VectorXd &current_joint_positions) {
+    std::pair<Eigen::Matrix4d, std::vector<Eigen::VectorXd>> result = ur3e_space_chain();
+    //Eigen::Matrix4d M = result.first;
+    std::vector<Eigen::VectorXd> SSS = result.second;
+
+    Eigen::MatrixXd jacobian(6,SSS.size());
+    jacobian.block<6,1>(0,0) = SSS[0];
+
+    for (int i=1; i<SSS.size(); i++) { // i = column. j = joint
+        Eigen::Matrix4d T_S = Eigen::Matrix4d::Identity();
+        for (int j=i-1; j>-1; j--) {
+            Eigen::Matrix4d ei = matrix_exponential(SSS[j].block<3,1>(0,0), SSS[j].block<3,1>(3,0), current_joint_positions[j]);
+            T_S = ei * T_S;
+        }
+        Eigen::MatrixXd transforms_S_to_Arbitrary_Theta = adjoint_matrix(T_S);
+        jacobian.block<6,1>(0,i) = transforms_S_to_Arbitrary_Theta*SSS[i];
+    }
+    return jacobian;
+}
+// T.3 b) Construct the body Jacobian
+Eigen::MatrixXd math::ur3e_body_jacobian(const Eigen::VectorXd &current_joint_positions){
+    std::pair<Eigen::Matrix4d, std::vector<Eigen::VectorXd>> result = ur3e_body_chain();
+    //Eigen::Matrix4d M = result.first;
+    std::vector<Eigen::VectorXd> BBB = result.second;
+
+    Eigen::MatrixXd jacobian(6,BBB.size());
+    jacobian.block<6,1>(0,BBB.size()-1) = BBB[BBB.size()-1];
+
+    for (int i=BBB.size()-2; i>-1; i--) { // i = column. j = joint
+        Eigen::Matrix4d T_B = Eigen::Matrix4d::Identity();
+        for (int j=BBB.size()-1; j>i; j--) {
+            Eigen::Matrix4d ei = matrix_exponential(BBB[j].block<3,1>(0,0), BBB[j].block<3,1>(3,0), -current_joint_positions[j]);
+            T_B = T_B*ei;
+        }
+        Eigen::MatrixXd transforms_B_to_Arbitrary_Theta = adjoint_matrix(T_B);
+        jacobian.block<6,1>(0,i) = transforms_B_to_Arbitrary_Theta*BBB[i];
+    }
+    return jacobian;
+}
+
+void math::ur3e_test_jacobian(const Eigen::VectorXd &joint_positions){
+    Eigen::Matrix4d tsb = ur3e_body_fk(joint_positions);
+    auto [m, space_screws] = ur3e_space_chain();
+    Eigen::MatrixXd jb = ur3e_body_jacobian(joint_positions);
+    Eigen::MatrixXd js = ur3e_space_jacobian(joint_positions);
+    Eigen::MatrixXd ad_tsb = adjoint_matrix(tsb);
+    Eigen::MatrixXd ad_tbs = adjoint_matrix(tsb.inverse());
+    std::cout << "Jb: " << std::endl << jb << std::endl << "Ad_tbs*Js:" << std::endl << ad_tbs * js << std::endl << std::endl;
+    std::cout << "Js: " << std::endl << js << std::endl << "Ad_tsb*Jb:" << std::endl << ad_tsb * jb << std::endl << std::endl;
+    std::cout << "d Jb: " << std::endl << jb - ad_tbs * js << std::endl << std::endl;
+    std::cout << "d Js: " << std::endl << js - ad_tsb * jb << std::endl << std::endl;
+    }
+void math::ur3e_test_jacobian(){
+    std::cout << "Jacobian matrix tests" << std::endl;
+    ur3e_test_jacobian(std_vector_to_eigen(std::vector<double>{0.0, 0.0, 0.0, 0.0, 0.0, 0.0}));
+    ur3e_test_jacobian(std_vector_to_eigen(std::vector<double>{45.0, -20.0, 10.0, 2.5, 30.0, -50.0}));
+}
