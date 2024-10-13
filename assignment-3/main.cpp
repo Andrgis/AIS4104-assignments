@@ -41,6 +41,7 @@ void test_T1e() {
     for(int i=0; i < BBB.size(); i++) {
         std::cout << "B" << i << ": " << BBB[i].transpose() << std::endl;
     }
+
     std::cout << std::endl;
 }
 void test_T1f() {
@@ -59,6 +60,7 @@ int main()
     test_T1d();
     test_T1e();
     test_T1f();
+    //math::debugging_ur3e_body_fk(math::std_vector_to_eigen(std::vector<double>{0.0, 0.0, 0.0, -90.0, 0.0, 0.0}));
     math::ur3e_test_fk();
     math::test_root_find();
     math::ur3e_test_jacobian();

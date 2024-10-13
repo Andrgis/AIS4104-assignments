@@ -56,7 +56,11 @@ namespace math {
     Eigen::MatrixXd ur3e_body_jacobian(const Eigen::VectorXd &current_joint_positions);
     void ur3e_test_jacobian(const Eigen::VectorXd &joint_positions);
     void ur3e_test_jacobian();
-    
+    std::pair<size_t, Eigen::VectorXd> ur3e_ik_body(const Eigen::Matrix4d &t_sd, const Eigen::VectorXd &current_joint_positions, double gamma = 1e-2, double v_e = 4e-3, double w_e = 4e-3);
+
+
+    void debugging_ur3e_body_fk(const Eigen::VectorXd &joint_positions);
+
     double cot(double x);
     void wrench_in_s_and_w();
     void print_pose(const Eigen::Matrix4d &tf, std::string label = "N/A");

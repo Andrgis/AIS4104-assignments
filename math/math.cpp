@@ -530,7 +530,7 @@ bool math::is_average_below_eps(const std::vector<double> &values, double eps, u
         }
     }
 }
-// T1c
+// T1c // Works perfectly
 std::pair<Eigen::Matrix4d, std::vector<Eigen::VectorXd>> math::ur3e_space_chain() {
     constexpr double h1{0.15185}, l1{0.24355}, l2{0.2132}, h2{0.08535},
             y1{0.13105}, y2{0.0921};
@@ -581,35 +581,35 @@ Eigen::Matrix4d math::ur3e_space_fk(const Eigen::VectorXd &joint_positions){
 
     return T;
 }
-// T1e // Good
+// T1e // Works perfectly
 std::pair<Eigen::Matrix4d, std::vector<Eigen::VectorXd>> math::ur3e_body_chain() {
     std::pair<Eigen::Matrix4d, std::vector<Eigen::VectorXd>> result = ur3e_space_chain();
-    Eigen::Matrix4d M = result.first;
+    Eigen::Matrix4d M = result.first; //Msb
     std::vector<Eigen::VectorXd> SSS = result.second;
-    Eigen::MatrixXd Ad_Minv = adjoint_matrix(M.inverse());
+    Eigen::MatrixXd Ad_bs = adjoint_matrix(M.inverse()); // Msb^-1 = Mbs
     std::vector<Eigen::VectorXd> BBB(SSS.size());
 
     for (int i=0 ; i<SSS.size() ; i++) {
-        const Eigen::VectorXd B = Ad_Minv * SSS[i];
+        const Eigen::VectorXd B = Ad_bs * SSS[i];  // Vb = Ad_bs * Vs
         BBB[i] = B;
     }
 
     return std::make_pair(M.inverse(), BBB);
 }
-// T1f // Good
+// T1f // Works perfectly
 Eigen::Matrix4d math::ur3e_body_fk(const Eigen::VectorXd &joint_positions) {
     std::pair<Eigen::Matrix4d, std::vector<Eigen::VectorXd>> result = ur3e_body_chain();
-    Eigen::Matrix4d T_B = result.first;
+    Eigen::Matrix4d T_B = result.first; // T_B = M_bs
     std::vector<Eigen::VectorXd> BBB = result.second;
 
-    for (int i=0; i<BBB.size(); i++) {
+    for (int i=0; i<BBB.size(); i++) { // Inputs should be ok, but seems like t
         Eigen::Matrix4d ei = matrix_exponential(BBB[i].block<3,1>(0,0), BBB[i].block<3,1>(3,0), joint_positions[i]);
-        T_B = T_B * ei;
+        T_B = T_B * ei; // Ok
     }
-
+    std::cout << T_B << std::endl;
     return T_B;
 }
-// T1g // GOOD! Both reference frames are describing the same forward kinematics
+// T1g // Forward kinematics for space frame is good, but unsure about body frame. Seems to be a problem somewhere. Can't find it.
 void math::ur3e_test_fk(){
 std::cout << "Forward kinematics tests" << std::endl;
 print_pose(ur3e_space_fk(std_vector_to_eigen(std::vector<double>{0.0, 0.0, 0.0, 0.0, 0.0, 0.0})));
@@ -747,9 +747,9 @@ Eigen::MatrixXd math::ur3e_body_jacobian(const Eigen::VectorXd &current_joint_po
     }
     return jacobian;
 }
-
+// The mistake was in this function. It was set to: tsb = ur3e_body_fk(), but that is tbs.
 void math::ur3e_test_jacobian(const Eigen::VectorXd &joint_positions){
-    Eigen::Matrix4d tsb = ur3e_body_fk(joint_positions);
+    Eigen::Matrix4d tsb = ur3e_space_fk(joint_positions);
     auto [m, space_screws] = ur3e_space_chain();
     Eigen::MatrixXd jb = ur3e_body_jacobian(joint_positions);
     Eigen::MatrixXd js = ur3e_space_jacobian(joint_positions);
@@ -764,4 +764,20 @@ void math::ur3e_test_jacobian(){
     std::cout << "Jacobian matrix tests" << std::endl;
     ur3e_test_jacobian(std_vector_to_eigen(std::vector<double>{0.0, 0.0, 0.0, 0.0, 0.0, 0.0}));
     ur3e_test_jacobian(std_vector_to_eigen(std::vector<double>{45.0, -20.0, 10.0, 2.5, 30.0, -50.0}));
+}
+
+void math::debugging_ur3e_body_fk(const Eigen::VectorXd &joint_positions) {
+    std::pair<Eigen::Matrix4d, std::vector<Eigen::VectorXd>> result = ur3e_body_chain();
+    Eigen::Matrix4d T_B = result.first; // T_B = M_bs
+    std::vector<Eigen::VectorXd> BBB = result.second;
+
+    for (int i=0; i<BBB.size(); i++) {
+        Eigen::Matrix4d ei = matrix_exponential(BBB[i].block<3,1>(0,0), BBB[i].block<3,1>(3,0), joint_positions[i]);
+        T_B = T_B * ei;
+        std::cout << i << ": " << std::endl << ei << std::endl << T_B << std::endl;
+    }
+}
+
+std::pair<size_t, Eigen::VectorXd> ur3e_ik_body(const Eigen::Matrix4d &t_sd, const Eigen::VectorXd &current_joint_positions, double gamma = 1e-2, double v_e = 4e-3, double w_e = 4e-3) {
+
 }
