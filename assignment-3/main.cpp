@@ -64,6 +64,7 @@ int main()
     math::ur3e_test_fk();
     math::test_root_find();
     math::ur3e_test_jacobian();
+    math::ur3e_ik_test();
     return 0;
 }
 

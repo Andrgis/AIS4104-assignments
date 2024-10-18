@@ -122,6 +122,15 @@ int main()
     math::test_ur3e_fk_screw("Joint configuration 3: SCREW ", joints3);
     math::test_ur3e_fk_transform("Joint configuration 3: TRANSFORM ", joints3);
 
+    Eigen::Matrix4d t_test;
+    t_test << 1, 0, 0, 0,0, 0, -1, 0,0, 1, 0, 3,0, 0, 0, 1;
+    auto[V_test, vinkel] = math::matrix_logarithm(t_test);
+    std::cout<<"V: "<< V_test.transpose() <<std::endl;
+    std::cout<<"Vinkel t: "<< vinkel <<std::endl;
+    Eigen::Matrix3d r_test = t_test.block<3,3>(0,0);
+    auto[w_test, vinkel_r] = math::matrix_logarithm(r_test);
+    std::cout<<"w: "<< w_test.transpose() <<std::endl;
+    std::cout<<"Vinkel r: "<< vinkel_r <<std::endl;
 
     return 0;
 }

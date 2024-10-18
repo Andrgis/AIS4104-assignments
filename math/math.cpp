@@ -260,20 +260,20 @@ std::pair<Eigen::Vector3d, double> math::matrix_logarithm(const Eigen::Matrix3d 
     double w_2{};
     double w_3{};
     Eigen::Vector3d w;
-    const double trR = r(0, 0) + r(1, 1) + r(2, 2);
+    const double trR = r.trace();
 
-    if (floatEquals(trR, 3)) {
+    if (floatEquals(trR, 3.0)) {
         theta = 0.0;
-        w = {0, 0, 0};
-    } else if (floatEquals(trR, -1)) { // Bruk floateqauls
+        w = {0.0, 0.0, 0.0};
+    } else if (floatEquals(trR, -1.0)) {
         theta = EIGEN_PI;
-        w_1 = r(0, 2) / sqrt(2 * (1 + r(2, 2)));
-        w_2 = r(1, 2) / sqrt(2 * (1 + r(2, 2)));
-        w_3 = 1 + r(2, 2) / sqrt(2 * (1 + r(2, 2)));
+        w_1 = r(0, 2) / std::sqrt(2.0 * (1.0 + r(2, 2)));
+        w_2 = r(1, 2) / std::sqrt(2.0 * (1.0 + r(2, 2)));
+        w_3 = (1.0 + r(2, 2)) / std::sqrt(2.0 * (1.0 + r(2, 2)));
         w = {w_1, w_2, w_3};
     } else {
-        theta = acos((trR - 1) / 2);
-        Eigen::Matrix3d skew_w = (r - r.transpose()) / (2 * sin(theta));
+        theta = std::acos(0.5*(trR - 1.0));
+        Eigen::Matrix3d skew_w = (r - r.transpose()) / (2.0 * sin(theta));
         w = {skew_w(2, 1), skew_w(0, 2), skew_w(1, 0)};
     }
 
@@ -323,22 +323,19 @@ std::pair<Eigen::VectorXd, double> math::matrix_logarithm(const Eigen::Matrix4d 
     Eigen::Vector3d v;
     double degrees;
 
-    Eigen::Matrix3d R;
-    R << t(0, 0), t(0, 1), t(0, 2),
-            t(1, 0), t(1, 1), t(1, 2),
-            t(2, 0), t(2, 1), t(2, 2);
-    Eigen::Vector3d p{t(0, 3), t(1, 3), t(2, 3)};
+    Eigen::Matrix3d R = t.block<3,3>(0,0);
+    Eigen::Vector3d p = t.block<3,1>(0,3);
 
-    if (R == Eigen::Matrix3d::Identity()) { //Bruk trace og floatequals
-        w = {0, 0, 0};
-        v = p.normalized();
-        degrees = sqrt(p(0) * p(0) + p(1) * p(1) + p(2) * p(2));
+    if (floatEquals(R.trace(),3.0)) {
+        w << 0.0, 0.0, 0.0;
+        v = p.normalized(); // v = p/|p|
+        degrees = p.norm(); // theta = |p|
     } else {
-        auto [fst, scd] = math::matrix_logarithm(R);
+        auto [fst, snd] = matrix_logarithm(R);
         w = fst;
-        degrees = scd;
+        degrees = snd;
 
-        const Eigen::Matrix3d G_inv = math::G_inverse(w, degrees);
+        const Eigen::Matrix3d G_inv = G_inverse(w, degrees);
         v = G_inv * p;
     }
     Eigen::VectorXd S(6);
@@ -348,11 +345,8 @@ std::pair<Eigen::VectorXd, double> math::matrix_logarithm(const Eigen::Matrix4d 
 }
 
 void math::print_pose(const Eigen::Matrix4d &tf, std::string label) {
-    Eigen::Matrix3d R;
-    R << tf(0, 0), tf(0, 1), tf(0, 2),
-            tf(1, 0), tf(1, 1), tf(1, 2),
-            tf(2, 0), tf(2, 1), tf(2, 2);
-    Eigen::Vector3d p{tf(0, 3), tf(1, 3), tf(2, 3)};
+    Eigen::Matrix3d R = tf.block<3,3>(0,0);
+    Eigen::Vector3d p = tf.block<3,1>(0,3);
 
     Eigen::Vector3d e_zyx = euler_zyx_from_rotation(R);
 
@@ -606,7 +600,6 @@ Eigen::Matrix4d math::ur3e_body_fk(const Eigen::VectorXd &joint_positions) {
         Eigen::Matrix4d ei = matrix_exponential(BBB[i].block<3,1>(0,0), BBB[i].block<3,1>(3,0), joint_positions[i]);
         T_B = T_B * ei; // Ok
     }
-    std::cout << T_B << std::endl;
     return T_B;
 }
 // T1g // Forward kinematics for space frame is good, but unsure about body frame. Seems to be a problem somewhere. Can't find it.
@@ -778,6 +771,74 @@ void math::debugging_ur3e_body_fk(const Eigen::VectorXd &joint_positions) {
     }
 }
 
-std::pair<size_t, Eigen::VectorXd> ur3e_ik_body(const Eigen::Matrix4d &t_sd, const Eigen::VectorXd &current_joint_positions, double gamma = 1e-2, double v_e = 4e-3, double w_e = 4e-3) {
+std::pair<size_t, Eigen::VectorXd> math::ur3e_ik_body(const Eigen::Matrix4d &t_sd, const Eigen::VectorXd &current_joint_positions, double gamma, double v_e, double w_e) {
 
+    Eigen::MatrixXd jacobian = ur3e_body_jacobian(current_joint_positions); // Jacobian for first position
+    Eigen::VectorXd theta = current_joint_positions; // The iterating joint positions
+    Eigen::Matrix4d t_bs = ur3e_body_fk(current_joint_positions); // Current position and orientation of end effector
+    auto [S_bs, angle_s] = matrix_logarithm(t_bs); // Finding V of current position
+    Eigen::VectorXd V_bs = S_bs*angle_s*c_deg_to_rad;
+    Eigen::Matrix4d t_bd = t_bs * t_sd;
+    auto [S_d, angle_d] = matrix_logarithm(t_bd); // Finding V of desired position
+    Eigen::VectorXd V_d = S_d*angle_d*c_deg_to_rad;
+    constexpr int max_iter = 20;
+    int iter = 0;
+
+    Eigen::Vector3d w_d = V_d.head(3); // Desired angular position
+    Eigen::Vector3d v_d = V_d.tail(3); // Desired translation position
+
+    bool err = true;
+    // Inverse kinematics continues until results are inside error margins. i = iteration
+    while (iter<max_iter and err) {
+        theta = theta - jacobian.completeOrthogonalDecomposition().pseudoInverse()*V_bs;
+        // Updating:
+        jacobian = ur3e_body_jacobian(theta); // Updating jacobian
+        t_bs = ur3e_body_fk(theta); // Current position and orientation of end effector
+        //t_bd = t_bs * t_sd;
+        auto [S_bd, angle_s] = matrix_logarithm(t_bs);
+        Eigen::VectorXd V_bd = S_bd*angle_s*c_deg_to_rad;
+        Eigen::Vector3d w_s = V_bd.head(3); // Current angular position
+        Eigen::Vector3d v_s = V_bd.tail(3); // Current translation position
+
+        err = (w_s-w_d).norm()>w_e || (v_s-v_d).norm()>v_e; // error between current position and desired position
+        iter++;
+    }
+    return std::make_pair(iter, theta);
+}
+
+void math::ur3e_ik_test_pose(const Eigen::Vector3d &pos, const Eigen::Vector3d &zyx, const Eigen::VectorXd &j0)
+{
+    std::cout << "Test from pose" << std::endl;
+    Eigen::Matrix4d t_sd = transformation_matrix(rotation_matrix_from_euler_zyx(zyx), pos);
+    auto [iterations, j_ik] = ur3e_ik_body(t_sd, j0);
+    Eigen::Matrix4d t_ik = ur3e_body_fk(j_ik);
+    print_pose(t_ik, " IK pose");
+    print_pose(t_sd, "Desired pose");
+    std::cout << "Converged after " << iterations << " iterations" << std::endl;
+    std::cout << "J_0: " << j0.transpose() << std::endl;
+    std::cout << "J_ik: " << j_ik.transpose() << std::endl << std::endl;
+}
+void math::ur3e_ik_test_configuration(const Eigen::VectorXd &joint_positions, const Eigen::VectorXd &j0)
+{
+    std::cout << "Test from configuration" << std::endl;
+    Eigen::Matrix4d t_sd = ur3e_space_fk(joint_positions);
+    auto [iterations, j_ik] = ur3e_ik_body(t_sd, j0);
+    Eigen::Matrix4d t_ik = ur3e_body_fk(j_ik);
+    print_pose(t_ik, " IK pose");
+    print_pose(t_sd, "Desired pose");
+    std::cout << "Converged after " << iterations << " iterations" << std::endl;
+    std::cout << "J_0: " << j0.transpose() << std::endl;
+    std::cout << "J_d: " << joint_positions.transpose() << std::endl;
+    std::cout << "J_ik: " << j_ik.transpose() << std::endl << std::endl;
+}
+void math::ur3e_ik_test()
+{
+    Eigen::VectorXd j_t0 = std_vector_to_eigen(std::vector<double>{0.0, 0.0, 0.0, 0.0, 0.0, 0.0});
+    Eigen::VectorXd j_t1 = std_vector_to_eigen(std::vector<double>{0.0, 0.0, -89.0, 0.0, 0.0, 0.0});
+    ur3e_ik_test_pose(Eigen::Vector3d{0.3289, 0.22315, 0.36505}, Eigen::Vector3d{0.0, 90.0, -90.0}, j_t0);
+    ur3e_ik_test_pose(Eigen::Vector3d{0.3289, 0.22315, 0.36505}, Eigen::Vector3d{0.0, 90.0, -90.0}, j_t1);
+    Eigen::VectorXd j_t2 = std_vector_to_eigen(std::vector<double>{50.0, -30.0, 20.0, 0.0, -30.0, 50.0});
+    Eigen::VectorXd j_d1 = std_vector_to_eigen(std::vector<double>{45.0, -20.0, 10.0, 2.5, 30.0,-50.0});
+    ur3e_ik_test_configuration(j_d1, j_t0);
+    ur3e_ik_test_configuration(j_d1, j_t2);
 }

@@ -56,8 +56,11 @@ namespace math {
     Eigen::MatrixXd ur3e_body_jacobian(const Eigen::VectorXd &current_joint_positions);
     void ur3e_test_jacobian(const Eigen::VectorXd &joint_positions);
     void ur3e_test_jacobian();
-    std::pair<size_t, Eigen::VectorXd> ur3e_ik_body(const Eigen::Matrix4d &t_sd, const Eigen::VectorXd &current_joint_positions, double gamma = 1e-2, double v_e = 4e-3, double w_e = 4e-3);
+    std::pair<size_t, Eigen::VectorXd> ur3e_ik_body(const Eigen::Matrix4d &t_sd, const Eigen::VectorXd &current_joint_positions, double gamma = 0.0001, double v_e = 4e-3, double w_e = 4e-3);
 
+    void ur3e_ik_test_pose(const Eigen::Vector3d &pos, const Eigen::Vector3d &zyx, const Eigen::VectorXd &j0);
+    void ur3e_ik_test_configuration(const Eigen::VectorXd &joint_positions, const Eigen::VectorXd &j0);
+    void ur3e_ik_test();
 
     void debugging_ur3e_body_fk(const Eigen::VectorXd &joint_positions);
 
@@ -68,7 +71,7 @@ namespace math {
     void test_planar_3r_fk_screw(const std::string &label, const std::vector<double> &joint_positions);
     void test_ur3e_fk_screw(const std::string &label, const std::vector<double> &joint_positions);
     void test_ur3e_fk_transform(const std::string &label, const std::vector<double> &joint_positions);
-    constexpr double c_rad_to_deg{57.2957795};
+    constexpr double rad_to_deg{57.2957795};
     constexpr double c_deg_to_rad{0.01745329251};
 }
 
