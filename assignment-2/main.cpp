@@ -122,8 +122,10 @@ int main()
     math::test_ur3e_fk_screw("Joint configuration 3: SCREW ", joints3);
     math::test_ur3e_fk_transform("Joint configuration 3: TRANSFORM ", joints3);
 
-    Eigen::Matrix4d t_test;
+    Eigen::Matrix4d t_test,t_test3,t_test2;
     t_test << 1, 0, 0, 0,0, 0, -1, 0,0, 1, 0, 3,0, 0, 0, 1;
+    t_test2 << 1, 0, 0, -1,0, 0, -1, 3,0, 1, 0, 4,0, 0, 0, 1;
+    t_test3 << 1/std::sqrt(3), 0, 0, 0,0, 0, -1/std::sqrt(3), 0,0, 1/std::sqrt(3), 0, 3,0, 0, 0, 1;
     auto[V_test, vinkel] = math::matrix_logarithm(t_test);
     std::cout<<"V: "<< V_test.transpose() <<std::endl;
     std::cout<<"Vinkel t: "<< vinkel <<std::endl;
@@ -131,6 +133,47 @@ int main()
     auto[w_test, vinkel_r] = math::matrix_logarithm(r_test);
     std::cout<<"w: "<< w_test.transpose() <<std::endl;
     std::cout<<"Vinkel r: "<< vinkel_r <<std::endl;
+    auto[V_test2, vinkel2] = math::matrix_logarithm(t_test2);
+    std::cout<<"V2: "<< V_test2.transpose() <<std::endl;
+    std::cout<<"Vinkel t2: "<< vinkel2 <<std::endl;
+    Eigen::Matrix3d r_test2 = t_test2.block<3,3>(0,0);
+    auto[w_test2, vinkel_r2] = math::matrix_logarithm(r_test2);
+    std::cout<<"w2: "<< w_test2.transpose() <<std::endl;
+    std::cout<<"Vinkel r2: "<< vinkel_r2 <<std::endl;
+    auto[V_test3, vinkel3] = math::matrix_logarithm(t_test3);
+    std::cout<<"V3: "<< V_test3.transpose() <<std::endl;
+    std::cout<<"Vinkel t3: "<< vinkel3 <<std::endl;
+    Eigen::Matrix3d r_test3 = t_test3.block<3,3>(0,0);
+    auto[w_test3, vinkel_r3] = math::matrix_logarithm(r_test3);
+    std::cout<<"w3: "<< w_test3.transpose() <<std::endl;
+    std::cout<<"Vinkel r3: "<< vinkel_r3 <<std::endl;
+
+    std::cout<<"floatEquals(r_test2.trace(),3): "<< math::floatEquals(r_test2.trace(),3) <<std::endl;
+    std::cout<<"floatEquals(r_test2.trace(),5): "<< math::floatEquals(r_test2.trace(),5) <<std::endl;
+
+    Eigen::Matrix3d r_promp;
+    r_promp << 0, 0, 1,-1, 0, 0,0, -1, 0;
+    auto[w_promp, vinkel_promp] = math::matrix_logarithm(r_promp);
+    std::cout<<"w_promp: "<< w_promp.transpose() <<std::endl;
+    std::cout<<"theta_promp: "<< vinkel_promp <<std::endl;
+
+    // Matrix log er ok
+
+    // skjekker forward kinematics.
+    Eigen::VectorXd j_d1(6);
+    j_d1 << 45.0, -20.0, 10.0, 2.5, 30.0,-50.0;
+    Eigen::Matrix4d t_body = math::ur3e_body_fk(j_d1);
+    Eigen::Matrix4d t_space = math::ur3e_space_fk(j_d1);
+    std::cout<<"t_body: "<< t_body <<std::endl;
+    std::cout<<"t_space: "<< t_space <<std::endl;
+
+    auto[M_S, SSS] =  math::ur3e_space_chain();
+    std::cout<<"M_S: "<< M_S <<std::endl;
+    for(int i=0; i<6; i++) {
+        std::cout << "SSS: " << SSS[i].transpose() << std::endl;
+    }
+
+
 
     return 0;
 }

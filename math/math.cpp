@@ -245,7 +245,7 @@ Eigen::VectorXd math::wrench_f(const Eigen::VectorXd &F_a, const Eigen::VectorXd
 }
 
 // Task 3a
-Eigen::Matrix3d math::matrix_exponential(const Eigen::Vector3d &w, const double theta) {
+Eigen::Matrix3d math::matrix_exponential(const Eigen::Vector3d &w, double theta) {
     const Eigen::Matrix3d skew_w{skew_symmetric(w)};
     const Eigen::Matrix3d I = Eigen::Matrix3d::Identity();
     const double rads = theta * M_PI / 180.0;
@@ -264,17 +264,17 @@ std::pair<Eigen::Vector3d, double> math::matrix_logarithm(const Eigen::Matrix3d 
 
     if (floatEquals(trR, 3.0)) {
         theta = 0.0;
-        w = {0.0, 0.0, 0.0};
+        w << 0.0, 0.0, 0.0;
     } else if (floatEquals(trR, -1.0)) {
         theta = EIGEN_PI;
         w_1 = r(0, 2) / std::sqrt(2.0 * (1.0 + r(2, 2)));
         w_2 = r(1, 2) / std::sqrt(2.0 * (1.0 + r(2, 2)));
         w_3 = (1.0 + r(2, 2)) / std::sqrt(2.0 * (1.0 + r(2, 2)));
-        w = {w_1, w_2, w_3};
+        w << w_1, w_2, w_3;
     } else {
         theta = std::acos(0.5*(trR - 1.0));
-        Eigen::Matrix3d skew_w = (r - r.transpose()) / (2.0 * sin(theta));
-        w = {skew_w(2, 1), skew_w(0, 2), skew_w(1, 0)};
+        Eigen::Matrix3d skew_w = (r - r.transpose()) / (2.0 * std::sin(theta));
+        w << skew_w(2, 1), skew_w(0, 2), skew_w(1, 0);
     }
 
 
@@ -282,7 +282,7 @@ std::pair<Eigen::Vector3d, double> math::matrix_logarithm(const Eigen::Matrix3d 
 }
 
 //Task 3c. se(3) -> SE(3)
-Eigen::Matrix4d math::matrix_exponential(const Eigen::Vector3d &w, const Eigen::Vector3d &v, const double theta) {
+Eigen::Matrix4d math::matrix_exponential(const Eigen::Vector3d &w, const Eigen::Vector3d &v,double theta) {
     const Eigen::Matrix3d skew_w{skew_symmetric(w)};
     const Eigen::Matrix3d I = Eigen::Matrix3d::Identity();
     const double rads = theta * M_PI / 180;
@@ -563,15 +563,14 @@ std::pair<Eigen::Matrix4d, std::vector<Eigen::VectorXd>> math::ur3e_space_chain(
 }
 // T1d // Works perfectly
 Eigen::Matrix4d math::ur3e_space_fk(const Eigen::VectorXd &joint_positions){
-    std::pair<Eigen::Matrix4d, std::vector<Eigen::VectorXd>> result = ur3e_space_chain();
-    Eigen::Matrix4d M = result.first;
-    std::vector<Eigen::VectorXd> SSS = result.second;
-    Eigen::Matrix4d T = M;
+    auto [M, SSS] = ur3e_space_chain();
+    Eigen::Matrix4d T = Eigen::Matrix4d::Identity();
 
-    for (int i=SSS.size()-1; i>-1; i--) {
+    for (int i=0; i<6; i++) {
         Eigen::Matrix4d ei = matrix_exponential(SSS[i].block<3,1>(0,0), SSS[i].block<3,1>(3,0), joint_positions[i]);
-        T = ei * T;
+        T = T*ei;
     }
+    T = T*M;
 
     return T;
 }
@@ -770,37 +769,39 @@ void math::debugging_ur3e_body_fk(const Eigen::VectorXd &joint_positions) {
         std::cout << i << ": " << std::endl << ei << std::endl << T_B << std::endl;
     }
 }
-
+// CANT GET IT RIGHT! DONT KNOW WHERE THE PROBLEM IS. HAVE SPENT TOO MANY HOURS TROUBLESHOOTING
 std::pair<size_t, Eigen::VectorXd> math::ur3e_ik_body(const Eigen::Matrix4d &t_sd, const Eigen::VectorXd &current_joint_positions, double gamma, double v_e, double w_e) {
 
-    Eigen::MatrixXd jacobian = ur3e_body_jacobian(current_joint_positions); // Jacobian for first position
+    Eigen::MatrixXd J_b = ur3e_body_jacobian(current_joint_positions); // Jacobian for first position
     Eigen::VectorXd theta = current_joint_positions; // The iterating joint positions
-    Eigen::Matrix4d t_bs = ur3e_body_fk(current_joint_positions); // Current position and orientation of end effector
-    auto [S_bs, angle_s] = matrix_logarithm(t_bs); // Finding V of current position
-    Eigen::VectorXd V_bs = S_bs*angle_s*c_deg_to_rad;
+    Eigen::Matrix4d t_sb = ur3e_body_fk(current_joint_positions); // Current position and orientation of end effector
+    auto [S_sb, angle_s] = matrix_logarithm(t_sb); // Finding V of current position
+    Eigen::VectorXd V_sb = S_sb*angle_s*c_deg_to_rad;
+    Eigen::Matrix4d t_bs = t_sb.inverse();
     Eigen::Matrix4d t_bd = t_bs * t_sd;
-    auto [S_d, angle_d] = matrix_logarithm(t_bd); // Finding V of desired position
-    Eigen::VectorXd V_d = S_d*angle_d*c_deg_to_rad;
-    constexpr int max_iter = 20;
+    auto [S_bd, angle_bd] = matrix_logarithm(t_bd); // Finding V of desired position
+    Eigen::VectorXd V_b = S_bd*angle_bd*c_deg_to_rad;
+    constexpr int max_iter = 5;  // Set low to make computing quicker, while troubleshooting
     int iter = 0;
-
-    Eigen::Vector3d w_d = V_d.head(3); // Desired angular position
-    Eigen::Vector3d v_d = V_d.tail(3); // Desired translation position
 
     bool err = true;
     // Inverse kinematics continues until results are inside error margins. i = iteration
     while (iter<max_iter and err) {
-        theta = theta - jacobian.completeOrthogonalDecomposition().pseudoInverse()*V_bs;
+        theta = theta - J_b.completeOrthogonalDecomposition().pseudoInverse()*V_b;
         // Updating:
-        jacobian = ur3e_body_jacobian(theta); // Updating jacobian
-        t_bs = ur3e_body_fk(theta); // Current position and orientation of end effector
-        //t_bd = t_bs * t_sd;
-        auto [S_bd, angle_s] = matrix_logarithm(t_bs);
-        Eigen::VectorXd V_bd = S_bd*angle_s*c_deg_to_rad;
-        Eigen::Vector3d w_s = V_bd.head(3); // Current angular position
-        Eigen::Vector3d v_s = V_bd.tail(3); // Current translation position
+        J_b = ur3e_body_jacobian(theta); // Updating jacobian
+        t_sb = ur3e_body_fk(theta); // Current position and orientation of end effector
+        t_bs = t_sb.inverse();
+        t_bd = t_bs * t_sd;
+        auto [fst, snd] = matrix_logarithm(t_bd);
+        S_bd = fst;
+        angle_bd = snd;
+        V_b = S_bd*angle_bd*c_deg_to_rad;
 
-        err = (w_s-w_d).norm()>w_e || (v_s-v_d).norm()>v_e; // error between current position and desired position
+        Eigen::Vector3d w_b = V_b.head(3); // Desired angular position
+        Eigen::Vector3d v_b = V_b.tail(3); // Desired translation position
+        std::cout <<"|w_b|: "<< w_b.norm() <<", |v_b|: "<< v_b.norm() << std::endl;
+        err = w_b.norm()>w_e || v_b.norm()>v_e; // error between current position and desired position
         iter++;
     }
     return std::make_pair(iter, theta);
